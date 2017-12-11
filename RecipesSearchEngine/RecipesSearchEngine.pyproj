@@ -21,7 +21,23 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="bulgarian_stemmer\bulgarian_stemmer.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="bulgarian_stemmer\__init__.py" />
     <Compile Include="RecipesSearchEngine.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="bulgarian_stemmer\" />
+    <Folder Include="C:\Users\icho9\Documents\Visual Studio 2017\Projects\RecipesSearchEngine\RecipesSearchEngine\scrappy_crawler\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="bulgarian_stemmer\stem_rules_context_1.pkl" />
+    <Content Include="bulgarian_stemmer\stem_rules_context_1.txt" />
+    <Content Include="bulgarian_stemmer\stem_rules_context_2.pkl" />
+    <Content Include="bulgarian_stemmer\stem_rules_context_2.txt" />
+    <Content Include="bulgarian_stemmer\stem_rules_context_3.pkl" />
+    <Content Include="bulgarian_stemmer\stem_rules_context_3.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
