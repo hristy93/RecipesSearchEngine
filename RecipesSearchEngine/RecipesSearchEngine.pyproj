@@ -26,10 +26,25 @@
     </Compile>
     <Compile Include="bulgarian_stemmer\__init__.py" />
     <Compile Include="RecipesSearchEngine.py" />
+    <Compile Include="scrapy_crawler\scrapy_crawler\items.py" />
+    <Compile Include="scrapy_crawler\scrapy_crawler\middlewares.py" />
+    <Compile Include="scrapy_crawler\scrapy_crawler\pipelines.py" />
+    <Compile Include="scrapy_crawler\scrapy_crawler\settings.py" />
+    <Compile Include="scrapy_crawler\scrapy_crawler\spiders\RecipesSpider.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="scrapy_crawler\scrapy_crawler\spiders\__init__.py" />
+    <Compile Include="scrapy_crawler\scrapy_crawler\__init__.py" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="bulgarian_stemmer\" />
     <Folder Include="C:\Users\icho9\Documents\Visual Studio 2017\Projects\RecipesSearchEngine\RecipesSearchEngine\scrappy_crawler\" />
+    <Folder Include="scrappy_crawler\" />
+    <Folder Include="scrapy_crawler\" />
+    <Folder Include="scrapy_crawler\scrapy_crawler\" />
+    <Folder Include="scrapy_crawler\scrapy_crawler\spiders\" />
+    <Folder Include="scrapy_crawler\scrapy_crawler\spiders\__pycache__\" />
+    <Folder Include="scrapy_crawler\scrapy_crawler\__pycache__\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="bulgarian_stemmer\stem_rules_context_1.pkl" />
@@ -38,6 +53,7 @@
     <Content Include="bulgarian_stemmer\stem_rules_context_2.txt" />
     <Content Include="bulgarian_stemmer\stem_rules_context_3.pkl" />
     <Content Include="bulgarian_stemmer\stem_rules_context_3.txt" />
+    <Content Include="scrapy_crawler\scrapy.cfg" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
