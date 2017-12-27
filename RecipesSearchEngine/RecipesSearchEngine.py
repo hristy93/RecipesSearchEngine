@@ -24,6 +24,7 @@ from sklearn.metrics import accuracy_score
 #from scipy.spatial.distance import pdist
 #import matplotlib.pyplot as plt
 from bulgarian_stemmer.bulgarian_stemmer import BulgarianStemmer
+from bulgarian_stemmer.bulstem import *
 from bs4 import BeautifulSoup
 
 def enable_win_unicode_console():
@@ -57,10 +58,17 @@ def get_ingredients(data):
 """ Stems the ingredients """
 def stemm_ingredients(ingredients):
     stemmer = BulgarianStemmer('stem_rules_context_1.pkl') # or .txt
-    for item in ingredients[:10]:
-       print(item)
-       stemmer(word)
-       stemmer.print_word(word)
+    for ingredient in ingredients[:10]:
+        modified_ingredient = ""
+        splitted_ingredient = ingredient.split(' ')
+        if len(splitted_ingredient) > 1: 
+            for splitted_item in splitted_ingredient:
+                modified_ingredient = modified_ingredient + " " + stem(splitted_item)
+                #print(splitted_item, " ", stemmer(splitted_item))
+            print(ingredient, " ", modified_ingredient)
+        else:
+            print(ingredient, " ", stemmer(ingredient))
+        #stemmer.print_word(item)
 
 def process_data(data, ingredients, ingredient_data, ingredients_count_info):
     index = 0
@@ -138,7 +146,7 @@ def main():
     print("recipes count: " + str(data_count))
     print("ingredients count: ", str(ingredients_count))
 
-    #stemm_ingredients(ingredients)
+    stemm_ingredients(ingredients)
 
     # processes the whole initial data from the json and gets the necessary data
     #process_data(data, ingredients, ingredient_data, ingredients_count_info)
@@ -179,7 +187,7 @@ def main():
     #doc_index = 2
     #feature_index = result[doc_index,:].nonzero()[1]
 
-    print('Tf data')
+    print('Tf-df data')
     for doc_index in range(1, data_count) :
         feature_index = result[doc_index,:].nonzero()[1]
         tfidf_score = zip(feature_index, [result[doc_index, x] for x in feature_index])
@@ -189,7 +197,7 @@ def main():
 
     corpus_index = [n for n in range(1, data_count + 1)]
     import pandas as pd
-    df = pd.DataFrame(result.todense(), index=feature_names, columns=corpus_index)
+    df = pd.DataFrame(result.todense(), index=corpus_index, columns=feature_names)
     print(df)
 
     #tfidf_data = get_tfidf_data(tf_data, idf_data, data_count)

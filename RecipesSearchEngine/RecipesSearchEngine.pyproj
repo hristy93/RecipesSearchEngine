@@ -24,6 +24,7 @@
     <Compile Include="bulgarian_stemmer\bulgarian_stemmer.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="bulgarian_stemmer\bulstem.py" />
     <Compile Include="bulgarian_stemmer\__init__.py" />
     <Compile Include="RecipesSearchEngine.py" />
     <Compile Include="scrapy_crawler\scrapy_crawler\items.py" />
@@ -47,10 +48,12 @@
     <Folder Include="scrapy_crawler\scrapy_crawler\__pycache__\" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="bulgarian_stemmer\StemmingRules-MinFreq-2.pickle" />
     <Content Include="bulgarian_stemmer\stem_rules_context_1.pkl" />
     <Content Include="bulgarian_stemmer\stem_rules_context_1.txt" />
     <Content Include="bulgarian_stemmer\stem_rules_context_2.pkl" />
     <Content Include="bulgarian_stemmer\stem_rules_context_2.txt" />
+    <Content Include="bulgarian_stemmer\stem_rules_context_2_UTF-8.txt" />
     <Content Include="bulgarian_stemmer\stem_rules_context_3.pkl" />
     <Content Include="bulgarian_stemmer\stem_rules_context_3.txt" />
     <Content Include="scrapy_crawler\scrapy.cfg" />

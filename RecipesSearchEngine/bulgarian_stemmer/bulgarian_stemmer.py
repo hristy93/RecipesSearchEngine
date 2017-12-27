@@ -6,7 +6,7 @@ import pickle
 import os
 
 class BulgarianStemmer(object):
-    def __init__(self, filename='../stem_rules_context_1.pkl'):
+    def __init__(self, filename='../stem_rules_context_1.txt'):
         self.stem_boundary = 1
 
         file_extension = os.path.splitext(filename)[1]
@@ -22,7 +22,7 @@ class BulgarianStemmer(object):
 
     def load_pickle_context(self, filename):
         context_file = open(filename, 'rb')
-        self.stemming_rules = pickle.load(context_file, encoding="UTF8")
+        self.stemming_rules = pickle.load(context_file, encoding="ISO-8859-1")
 
     def load_text_context(self, filename):
         self.stemming_rules = dict()
