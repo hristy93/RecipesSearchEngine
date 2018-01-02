@@ -260,3 +260,4 @@ paket-files/
 __pycache__/
 *.pyc
 /RecipesSearchEngine/scrapy_crawler/scrapy_crawler/recipes.json
+/RecipesSearchEngine/recipes.json

@@ -87,7 +87,7 @@ def stem(word):
 		word_reminder = wordLen - c
 		
 		'Check if there is a stem matching the reminder of the word'
-		if stem in StemmingRules[word_reminder].keys():
+		if word_reminder in StemmingRules.keys() and stem in StemmingRules[word_reminder].keys():
 			'Return stemmed word'
 			return word[:c]+StemmingRules[word_reminder][stem]
 			break

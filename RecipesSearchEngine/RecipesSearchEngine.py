@@ -8,6 +8,7 @@ import nltk
 import re
 from heapq import nlargest
 from bs4 import BeautifulSoup 
+import pandas as pd
 import numpy as np
 from itertools import compress
 from sklearn.cluster import KMeans
@@ -26,6 +27,7 @@ from sklearn.metrics import accuracy_score
 from bulgarian_stemmer.bulgarian_stemmer import BulgarianStemmer
 from bulgarian_stemmer.bulstem import *
 from bs4 import BeautifulSoup
+from SolrClient import SolrClient
 
 def enable_win_unicode_console():
     try:
@@ -58,7 +60,8 @@ def get_ingredients(data):
 """ Stems the ingredients """
 def stemm_ingredients(ingredients):
     stemmer = BulgarianStemmer('stem_rules_context_1.pkl') # or .txt
-    for ingredient in ingredients[:10]:
+    stemmed_ingredients = set()
+    for ingredient in ingredients:
         modified_ingredient = ""
         splitted_ingredient = ingredient.split(' ')
         if len(splitted_ingredient) > 1: 
@@ -67,7 +70,11 @@ def stemm_ingredients(ingredients):
                 #print(splitted_item, " ", stemmer(splitted_item))
             print(ingredient, " ", modified_ingredient)
         else:
-            print(ingredient, " ", stemmer(ingredient))
+            modified_ingredient = stem(ingredient)
+            print(ingredient, " ", modified_ingredient)
+        stemmed_ingredients.add(modified_ingredient)
+
+    return stemmed_ingredients
         #stemmer.print_word(item)
 
 def process_data(data, ingredients, ingredient_data, ingredients_count_info):
@@ -109,11 +116,133 @@ def get_tfidf_data(tf_data, idf_data, data_count):
     return tfidf_data
 
 
+# Uses Solr to search with a single term for a recipe name
+# that is close to the input 
+def solr_single_term_recipe_name_search_by_field(solr_url, collection_name, search_input,
+                                                search_field="name"):
+    solr = SolrClient(solr_url)
+    query = search_field + ":*" + search_input + "*"
+    print("Single term recipe name search:")
+    result = solr.query(collection_name,{
+            'q':query,
+    })
+    result_data = result.data
+    for docs in result.docs:
+        print(docs['name'])
+
+
+# Uses Solr to search with a phrase for a recipe name 
+# that is exactly the same as the input 
+def solr_phrase_search_recipe_name_by_field(solr_url, collection_name, search_input,
+                                           search_field="name"):
+    solr = SolrClient(solr_url)
+    query = search_field + ":\"" + search_input + "\""
+    print("\nPhrase recipe name search:")
+    result = solr.query(collection_name,{
+            'q':query,
+    })
+    result_data = result.data
+    for docs in result.docs:
+        print(docs['name'])
+
+
+# Uses Solr to search with a single term for a recipe's ingredient
+# that is close to the input 
+def solr_single_term_search_ingredient_name_by_field(solr_url, collection_name,
+                                                    search_input, search_field = "ingredients.name"):
+    solr = SolrClient(solr_url)
+    query = search_field + ":*" + search_input + "*"
+    print("\nSingle term recipe ingredient search:")
+    result = solr.query(collection_name,{
+            'q':query,
+    })
+    result_data = result.data
+    for docs in result.docs:
+        print(docs['name'])
+
+
+def solr_facet_search_recipe_category_by_field(solr_url, collection_name, search_input,
+                                          search_field="name", facet_field="category"):
+    solr = SolrClient(solr_url)
+    query = search_field + ":*" + search_input + "*"
+    print("\nCategory facet search:")
+    result = solr.query(collection_name,{
+            'q':query,
+            'facet':'true',
+            'facet.field':facet_field,
+    })
+    facets = result.get_facets()
+    print("facets", facets)
+    facet_values_as_list = result.get_facet_values_as_list(facet_field)
+    print("facet_values_as_list", facet_values_as_list)
+    facet_keys_as_list = result.get_facet_keys_as_list(facet_field)
+    print("facet_keys_as_list", facet_keys_as_list)
+    result_data = result.data
+    #print("result_data", result_data)
+    for docs in result.docs:
+        print(docs['name'])
+
+
+def solr_facet_search_recipe_user_by_field(solr_url, collection_name, search_input,
+                                              search_field="name", facet_field="user"):
+    solr = SolrClient(solr_url)
+    query = search_field + ":*" + search_input + "*"
+    print("\nUser facet search:")
+    result = solr.query(collection_name,{
+            'q':query,
+            'facet':'true',
+            'facet.field':facet_field,
+    })
+    facets = result.get_facets()
+    print("facets", facets)
+    facet_values_as_list = result.get_facet_values_as_list(facet_field)
+    print("facet_values_as_list", facet_values_as_list)
+    facet_keys_as_list = result.get_facet_keys_as_list(facet_field)
+    print("facet_keys_as_list", facet_keys_as_list)
+    result_data = result.data
+    #print("result_data", result_data)
+    for docs in result.docs:
+        print(docs['name'])
+
+
+# NOT WORKING - need to remove the '>' and '<' from the durations and to make the corresponding 
+# field into a an interger one (it's text now)
+def solr_facet_search_recipe_duration_by_field(solr_url, collection_name, search_input,
+                                              search_field="name", facet_field="duration", 
+                                              duration_range = (10,50)):
+    solr = SolrClient(solr_url)
+    query = search_field + ":*" + search_input + "*"
+    print("\nDuration facet search:")
+    #duration_query = facet_field + ':[' + str(duration_range[0]) + '%28TO%28' + str(duration_range[1]) + ']'
+    result = solr.query(collection_name,{
+            'q':query,
+            'facet':'true',
+            'facet.range':facet_field,
+            'facet.range.start':str(duration_range[0]),
+            'facet.range.end':str(duration_range[1]),
+            'facet.range.gap':'0'
+    })
+    facets = result.get_facets()
+    print("facets", facets)
+    facet_values_as_list = result.get_facet_values_as_list(facet_field)
+    print("facet_values_as_list", facet_values_as_list)
+    facet_keys_as_list = result.get_facet_keys_as_list(facet_field)
+    print("facet_keys_as_list", facet_keys_as_list)
+    result_data = result.data
+    #print("result_data", result_data)
+    for docs in result.docs:
+        print(docs['name'])
+
+
 def main():
 
      # defines some variables and constants
-    json_file_name = "recipes_500_refined_edited.json"
+    #json_file_name = "recipes_500_refined_edited.json"
+    json_file_name = "recipes.json"
     user_likes_file_name = "recipes.csv"
+    solr_url = "http://localhost:8983/solr"
+    collection_name = "recipes-search-engine"
+
     propability_of_one = 0.6
     #users_count = 20
     best_user_pref_count = 5
@@ -136,22 +265,41 @@ def main():
     ingredient_data = dict()
     ingredients_count_info = dict()
     ingredients = set()
+    stemmed_ingredients = set()
     ingredients = get_ingredients(data)
     ingredients = list(ingredients)
     ingredients_count = len(ingredients)
     igredients_stop_words = ['сол', 'пипер', 'олио', 'лук', 'вода', 'черен_пипер']
 
-     # prints general info about the recipe data
+    # prints general info about the recipe data
     print("\nRecipes data information:")
     print("recipes count: " + str(data_count))
     print("ingredients count: ", str(ingredients_count))
 
-    stemm_ingredients(ingredients)
+    # stemmes the ingredients
+    #stemmed_ingredients = stemm_ingredients(ingredients)
+    #print("stemmed_ingredients count", len(stemmed_ingredients))
 
     # processes the whole initial data from the json and gets the necessary data
     #process_data(data, ingredients, ingredient_data, ingredients_count_info)
     #print(ingredient_data[0])
 
+    # uses Solr to search into its index
+    search_input = input("\nSearch input: \n")
+
+    #solr_facet_search_recipe_category_by_field(solr_url, collection_name, search_input)
+    #solr_facet_search_recipe_user_by_field(solr_url, collection_name, search_input)
+    #solr_facet_search_recipe_duration_by_field(solr_url, collection_name, search_input)
+
+    if search_input in ingredients:
+        solr_single_term_search_ingredient_name_by_field(solr_url, collection_name, search_input)
+    else:
+        if " " not in search_input:
+            solr_single_term_recipe_name_search_by_field(solr_url, collection_name, search_input)
+        else:
+            solr_phrase_recipe_name_search_by_field(solr_url, collection_name, search_input)
+
+    # concatinates the separate names of the ingredients into someting like стар_праз_лук
     tfidf_raw_data = []
     meaningful_ingedients = []
     for recipe in data:
@@ -196,7 +344,8 @@ def main():
         print(w, s)
 
     corpus_index = [n for n in range(1, data_count + 1)]
-    import pandas as pd
+
+    """ Prints the tf-idf data of all recipes x ingredients """
     df = pd.DataFrame(result.todense(), index=corpus_index, columns=feature_names)
     print(df)
 
