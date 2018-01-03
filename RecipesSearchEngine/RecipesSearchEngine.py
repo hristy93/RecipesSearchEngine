@@ -127,6 +127,8 @@ def solr_single_term_recipe_name_search_by_field(solr_url, collection_name, sear
             'q':query,
     })
     result_data = result.data
+
+    print("Results:")
     for docs in result.docs:
         print(docs['name'])
 
@@ -142,6 +144,8 @@ def solr_phrase_search_recipe_name_by_field(solr_url, collection_name, search_in
             'q':query,
     })
     result_data = result.data
+
+    print("Results:")
     for docs in result.docs:
         print(docs['name'])
 
@@ -157,6 +161,8 @@ def solr_single_term_search_ingredient_name_by_field(solr_url, collection_name,
             'q':query,
     })
     result_data = result.data
+
+    print("Results:")
     for docs in result.docs:
         print(docs['name'])
 
@@ -170,21 +176,24 @@ def solr_facet_search_recipe_category_by_field(solr_url, collection_name, search
             'q':query,
             'facet':'true',
             'facet.field':facet_field,
+            'mincount':'1'
     })
     facets = result.get_facets()
-    print("facets", facets)
+    print("facets", facets, "\n")
     facet_values_as_list = result.get_facet_values_as_list(facet_field)
-    print("facet_values_as_list", facet_values_as_list)
+    print("facet_values_as_list", facet_values_as_list, "\n")
     facet_keys_as_list = result.get_facet_keys_as_list(facet_field)
-    print("facet_keys_as_list", facet_keys_as_list)
+    print("facet_keys_as_list", facet_keys_as_list, "\n")
+    #jsonfacet_counts_as_dict = result.get_jsonfacet_counts_as_dict(facet_field, result.data)
+    #print("jsonfacet_counts_as_dict", jsonfacet_counts_as_dict, "\n")
     result_data = result.data
     #print("result_data", result_data)
-    for docs in result.docs:
-        print(docs['name'])
+    #for docs in result.docs:
+    #    print(docs['name'])
 
 
 def solr_facet_search_recipe_user_by_field(solr_url, collection_name, search_input,
-                                              search_field="name", facet_field="user"):
+                                              search_field="name", facet_field="user_str"):
     solr = SolrClient(solr_url)
     query = search_field + ":*" + search_input + "*"
     print("\nUser facet search:")
@@ -194,15 +203,15 @@ def solr_facet_search_recipe_user_by_field(solr_url, collection_name, search_inp
             'facet.field':facet_field,
     })
     facets = result.get_facets()
-    print("facets", facets)
+    print("facets", facets, "\n")
     facet_values_as_list = result.get_facet_values_as_list(facet_field)
-    print("facet_values_as_list", facet_values_as_list)
+    print("facet_values_as_list", facet_values_as_list, "\n")
     facet_keys_as_list = result.get_facet_keys_as_list(facet_field)
-    print("facet_keys_as_list", facet_keys_as_list)
+    print("facet_keys_as_list", facet_keys_as_list, "\n")
     result_data = result.data
     #print("result_data", result_data)
-    for docs in result.docs:
-        print(docs['name'])
+    #for docs in result.docs:
+    #    print(docs['name'])
 
 
 # NOT WORKING - need to remove the '>' and '<' from the durations and to make the corresponding 
@@ -218,20 +227,20 @@ def solr_facet_search_recipe_duration_by_field(solr_url, collection_name, search
             'q':query,
             'facet':'true',
             'facet.range':facet_field,
-            'facet.range.start':str(duration_range[0]),
-            'facet.range.end':str(duration_range[1]),
-            'facet.range.gap':'0'
+            'facet.range.start':duration_range[0],
+            'facet.range.end':duration_range[1],
+            'facet.range.gap':0
     })
     facets = result.get_facets()
-    print("facets", facets)
+    print("facets", facets, "\n")
     facet_values_as_list = result.get_facet_values_as_list(facet_field)
-    print("facet_values_as_list", facet_values_as_list)
+    print("facet_values_as_list", facet_values_as_list, "\n")
     facet_keys_as_list = result.get_facet_keys_as_list(facet_field)
-    print("facet_keys_as_list", facet_keys_as_list)
+    print("facet_keys_as_list", facet_keys_as_list, "\n")
     result_data = result.data
     #print("result_data", result_data)
-    for docs in result.docs:
-        print(docs['name'])
+    #for docs in result.docs:
+    #    print(docs['name'])
 
 
 def main():
@@ -252,7 +261,7 @@ def main():
     use_user_input = True
     tfidf_data = []
 
-     # reads the recipes data from the json file
+    # reads the recipes data from the json file
     data = read_json(json_file_name)
 
     # for recipe filtering by category id
@@ -284,142 +293,81 @@ def main():
     #process_data(data, ingredients, ingredient_data, ingredients_count_info)
     #print(ingredient_data[0])
 
-    # uses Solr to search into its index
+    # Uses Solr to search into its index
+    search_option = input("Search by partial recipe name (1), exact recipe name (2) or ingredient name (3)\n")
     search_input = input("\nSearch input: \n")
 
+
+    # Facets from Solr
     #solr_facet_search_recipe_category_by_field(solr_url, collection_name, search_input)
     #solr_facet_search_recipe_user_by_field(solr_url, collection_name, search_input)
-    #solr_facet_search_recipe_duration_by_field(solr_url, collection_name, search_input)
-
-    if search_input in ingredients:
+    #solr_facet_search_recipe_duration_by_field(solr_url, collection_name, search_input) # NOT WORKING
+    if search_option == "1":
+        solr_single_term_recipe_name_search_by_field(solr_url, collection_name, search_input)
+    elif search_option == "2":
+        solr_phrase_recipe_name_search_by_field(solr_url, collection_name, search_input)
+    elif search_option == "3":
         solr_single_term_search_ingredient_name_by_field(solr_url, collection_name, search_input)
-    else:
-        if " " not in search_input:
-            solr_single_term_recipe_name_search_by_field(solr_url, collection_name, search_input)
-        else:
-            solr_phrase_recipe_name_search_by_field(solr_url, collection_name, search_input)
+    solr_facet_search_recipe_category_by_field(solr_url, collection_name, search_input)
+    solr_facet_search_recipe_user_by_field(solr_url, collection_name, search_input)
+   #if " " not in search_input:
+   #    solr_single_term_recipe_name_search_by_field(solr_url, collection_name, search_input)
+   #else:
+   #    solr_phrase_recipe_name_search_by_field(solr_url, collection_name, search_input)
 
-    # concatinates the separate names of the ingredients into someting like стар_праз_лук
-    tfidf_raw_data = []
-    meaningful_ingedients = []
-    for recipe in data:
-        #print(recipe['name'])
-        ingredients_inner_data = []
-        for item in recipe['ingredients']:
-            ingredient_name = item['name']
-            if ' ' in ingredient_name:
-                ingredient_name = '_'.join(ingredient_name.split(' '))
-            ingredients_inner_data.append(ingredient_name)
-        meaningful_ingedients = [w for w in ingredients_inner_data if not w in igredients_stop_words]   
-        ingredients_inner_data = " ".join(ingredients_inner_data)
-        tfidf_raw_data.append(ingredients_inner_data)
+    # Concatinates the separate names of the ingredients into someting like стар_праз_лук
+    #tfidf_raw_data = []
+    #meaningful_ingedients = []
+    #for recipe in data:
+    #    #print(recipe['name'])
+    #    ingredients_inner_data = []
+    #    for item in recipe['ingredients']:
+    #        ingredient_name = item['name']
+    #        if ' ' in ingredient_name:
+    #            ingredient_name = '_'.join(ingredient_name.split(' '))
+    #        ingredients_inner_data.append(ingredient_name)
+    #    meaningful_ingedients = [w for w in ingredients_inner_data if not w in igredients_stop_words]   
+    #    ingredients_inner_data = " ".join(ingredients_inner_data)
+    #    tfidf_raw_data.append(ingredients_inner_data)
 
-    vectorizer = TfidfVectorizer(max_features = 10000, \
-                                 #ngram_range = ( 1, 3 ), \
-                                 sublinear_tf = True,
-                                 binary = True,
-                                 use_idf = True,
-                                 stop_words = igredients_stop_words)
+    # Uses a vectorizer to make get the tf-idf data
+    #vectorizer = TfidfVectorizer(max_features = 10000, \
+    #                             #ngram_range = ( 1, 3 ), \
+    #                             sublinear_tf = True,
+    #                             binary = True,
+    #                             use_idf = True,
+    #                             stop_words = igredients_stop_words)
+    #result = vectorizer.fit_transform(tfidf_raw_data)
 
-    result = vectorizer.fit_transform(tfidf_raw_data)
     #print('vocabulary', vectorizer.vocabulary_)
-    idf_data = vectorizer.idf_
-    print('Idf data')
-    print(dict(zip(vectorizer.get_feature_names(), idf_data)))
-    print('\n')
-    feature_names = vectorizer.get_feature_names()
-    print('Features count', str(feature_names.count))
+
+    # Gets the idf data from the vectorizer's result
+    #idf_data = vectorizer.idf_
+    #print('Idf data')
+    #print(dict(zip(vectorizer.get_feature_names(), idf_data)))
+    #print('\n')
+
+    # Gets the features' names from the vectorizer's result
+    #feature_names = vectorizer.get_feature_names()
     #print('feature_names', feature_names)
-    tfidf_data = []
 
-    #doc_index = 2
-    #feature_index = result[doc_index,:].nonzero()[1]
+    # Gets the tf-idf data from the vectorizer's result
+    #print('Tf-idf data')
+    #for doc_index in range(1, data_count) :
+    #    feature_index = result[doc_index,:].nonzero()[1]
+    #    tfidf_score = zip(feature_index, [result[doc_index, x] for x in feature_index])
+    #    tfidf_data.append(tfidf_score)
+    #for w, s in [(feature_names[i], s) for (i, s) in tfidf_score]:
+    #    print(w, s)
 
-    print('Tf-df data')
-    for doc_index in range(1, data_count) :
-        feature_index = result[doc_index,:].nonzero()[1]
-        tfidf_score = zip(feature_index, [result[doc_index, x] for x in feature_index])
-        tfidf_data.append(tfidf_score)
-    for w, s in [(feature_names[i], s) for (i, s) in tfidf_score]:
-        print(w, s)
+    # Prints the tf-idf data of all recipes x ingredients
+    #corpus_index = [n for n in range(1, data_count + 1)]
+    #df = pd.DataFrame(result.todense(), index=corpus_index, columns=feature_names)
+    #print(df)
 
-    corpus_index = [n for n in range(1, data_count + 1)]
-
-    """ Prints the tf-idf data of all recipes x ingredients """
-    df = pd.DataFrame(result.todense(), index=corpus_index, columns=feature_names)
-    print(df)
-
+    # Get the tf-idf data manually
     #tfidf_data = get_tfidf_data(tf_data, idf_data, data_count)
     #print('Tf-idf data', tfidf_data)
-
-
-    # From the exercise
-
-    # First, we need some preparation.
-
-    # Download text data sets, including stop word
-
-    # nltk.download("stopwords")  
-
-
-    #from nltk.corpus import stopwords # Import the stop word list
-    #print(stopwords.words("english"))
-    
-    # 1. Remove HTML tags using the BeautifulSoup4 package
-    #example1 = BeautifulSoup(example1, "html5lib").get_text() 
-    
-    # 2. Remove non-letters using regular expression which keeps only the letters from the Enlighs alphabet        
-    #example1 = re.sub("[^a-zA-Z]", " ", example1) 
-    
-    # 3. Convert to lower case
-    #example1 = example1.lower()
-    
-    # Split the text into words in order to remove the stop-words
-    #words = example1.split()  
-    
-    # In Python, searching a set is much faster than searching
-    #   a list, so convert the stop words to a set
-    #stops = set(stopwords.words("english"))                  
-    
-    # 4. Remove stop words
-    #meaningful_words = [w for w in words if not w in stops]
-    
-    # 5. Join the words back into one string
-    #example1 = " ".join( meaningful_words )
-    
-    #Initialize the "CountVectorizer" object, which is scikit-learn's bag of words tool.  
-    #vectorizer = CountVectorizer(analyzer = "word",   \
-    #                             tokenizer = None,    \
-    #                             preprocessor = None, \
-    #                             stop_words = None,   \
-    #                             max_features = 1000) 
-    
-    # fit_transform() does two functions: First, it fits the model
-    # and learns the vocabulary; second, it transforms our training data
-    # into feature vectors. The input to fit_transform should be a list of 
-    # strings.
-    #train_X = vectorizer.fit_transform(clean_train_reviews
-    
-    #Try using TfidfVectorizer instead of CountVectorizer and check how the results change.
-    
-    #vectorizer = TfidfVectorizer(max_features = 10000,   \
-    #                             ngram_range = ( 1, 3 ), \
-    #                             sublinear_tf = True )
-    
-    # Numpy arrays are easy to work with, so convert the result to an array
-    # train_data_features = train_data_features.toarray()
-    
-    # Create features vectors for the validation set.
-    
-    #validation_X = vectorizer.transform(clean_validation_reviews)
-    
-    # Create features vectors for the validation set.
-    
-    #validation_X = vectorizer.transform(clean_validation_reviews)
-    
-    #predicted = model.predict( validation_X )
-    
-    #accuracy_score(validation["sentiment"], predicted)
     
 
 if __name__ == "__main__":
@@ -427,4 +375,3 @@ if __name__ == "__main__":
     if sys.platform == "win32":
         enable_win_unicode_console()
     main()
-

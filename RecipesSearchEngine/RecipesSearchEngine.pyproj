@@ -26,6 +26,9 @@
     </Compile>
     <Compile Include="bulgarian_stemmer\bulstem.py" />
     <Compile Include="bulgarian_stemmer\__init__.py" />
+    <Compile Include="exercise_help.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="RecipesSearchEngine.py" />
     <Compile Include="scrapy_crawler\scrapy_crawler\items.py" />
     <Compile Include="scrapy_crawler\scrapy_crawler\middlewares.py" />
@@ -40,7 +43,6 @@
   <ItemGroup>
     <Folder Include="bulgarian_stemmer\" />
     <Folder Include="C:\Users\icho9\Documents\Visual Studio 2017\Projects\RecipesSearchEngine\RecipesSearchEngine\scrappy_crawler\" />
-    <Folder Include="scrappy_crawler\" />
     <Folder Include="scrapy_crawler\" />
     <Folder Include="scrapy_crawler\scrapy_crawler\" />
     <Folder Include="scrapy_crawler\scrapy_crawler\spiders\" />
