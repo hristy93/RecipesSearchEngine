@@ -40,10 +40,8 @@ def enable_win_unicode_console():
         pass
 
 
-""" Reads the json data and saves it in data """
-
-
 def read_json(json_file_name):
+    """ Reads the json data and saves it in data """
     data = []
     # print("Reading recipe data ...\n")
     with open(json_file_name, 'r', encoding="utf-8") as json_data:
@@ -51,10 +49,8 @@ def read_json(json_file_name):
     return data
 
 
-""" Gets the ingreients from the json data """
-
-
 def get_ingredients(data):
+    """ Gets the ingredients from the json data """
     ingredients = set()
     stemmed_ingredients = set()
     for recipe_index, item in enumerate(data):
@@ -71,11 +67,9 @@ def get_ingredients(data):
     return ingredients, stemmed_ingredients
 
 
-""" Stems the ingredient """
-
-
 def stemm_ingredient(ingredient):
-    stemmer = BulgarianStemmer('stem_rules_context_1.pkl')  # or .txt
+    """ Stems the ingredient """
+    # stemmer = BulgarianStemmer('stem_rules_context_1.pkl')  # or .txt
     stemmed_ingredient = ""
     splitted_ingredient = ingredient.split(' ')
     if len(splitted_ingredient) > 1:
@@ -90,11 +84,9 @@ def stemm_ingredient(ingredient):
     # stemmer.print_word(item)
 
 
-""" Stems the ingredients """
-
-
 def stemm_ingredients(ingredients):
-    stemmer = BulgarianStemmer('stem_rules_context_1.pkl')  # or .txt
+    """ Stems the ingredients """
+    # stemmer = BulgarianStemmer('stem_rules_context_1.pkl')  # or .txt
     stemmed_ingredients = set()
     for ingredient in ingredients:
         modified_ingredient = ""
@@ -112,6 +104,19 @@ def stemm_ingredients(ingredients):
 
     return stemmed_ingredients
     # stemmer.print_word(item)
+
+
+def get_stemmed_categories(data):
+    """Stemms category for each recipe."""
+    categories = set()
+    stemmed_categories = set()
+    for recipe in data:
+        categories.add(recipe["category"])
+        stemm_category = stem(recipe["category"])
+        # print(recipe["category"], "->", stemm_category)
+        recipe["category"] = stemm_category
+        stemmed_categories.add(stemm_category)
+    return categories, stemmed_categories
 
 
 def process_data(data, ingredients, ingredient_data, ingredients_count_info):
@@ -144,10 +149,8 @@ def process_data(data, ingredients, ingredient_data, ingredients_count_info):
     print("ingredient_data count: " + str(len(ingredient_data.values())))
 
 
-""" Gets the tf-idf data from the tf_data and idf_data """
-
-
 def get_tfidf_data(tf_data, idf_data, data_count):
+    """ Gets the tf-idf data from the tf_data and idf_data """
     tfidf_data = list()
     for i in range(data_count):
         tf_list = tf_data[i]
@@ -156,14 +159,13 @@ def get_tfidf_data(tf_data, idf_data, data_count):
     return tfidf_data
 
 
-"""  Uses Solr to search with a single term for a recipe name
-# that is close to the input 
-"""
-
-
 def solr_single_term_recipe_name_search_by_field(solr_url, collection_name,
                                                  search_input,
                                                  search_field="name"):
+    """  Uses Solr to search with a single term for a recipe name
+    # that is close to the input
+    """
+
     solr = SolrClient(solr_url)
     query = search_field + ":*" + search_input + "*"
     print("Single term recipe name search:")
@@ -177,11 +179,11 @@ def solr_single_term_recipe_name_search_by_field(solr_url, collection_name,
         print(docs['name'])
 
 
-# Uses Solr to search with a phrase for a recipe name
-# that is exactly the same as the input
 def solr_phrase_search_recipe_name_by_field(solr_url, collection_name,
                                             search_input,
                                             search_field="name"):
+    """Uses Solr to search with a phrase for a recipe name
+    that is exactly the same as the input"""
     solr = SolrClient(solr_url)
     query = search_field + ":\"" + search_input + "\""
     print("\nPhrase recipe name search:")
@@ -195,14 +197,12 @@ def solr_phrase_search_recipe_name_by_field(solr_url, collection_name,
         print(docs['name'])
 
 
-""" Uses Solr to search with a single term for a recipe's ingredient
-# that is close to the input 
-"""
-
-
 def solr_single_term_search_ingredient_name_by_field(solr_url, collection_name,
                                                      search_input,
                                                      search_field="ingredients.name"):
+    """ Uses Solr to search with a single term for a recipe's ingredient
+    # that is close to the input
+    """
     solr = SolrClient(solr_url)
     query = search_field + ":*" + search_input + "*"
     print("\nSingle term recipe ingredient search:")
@@ -298,19 +298,21 @@ def solr_facet_search_recipe_duration_by_field(solr_url, collection_name,
     #    print(docs['name'])
 
 
-""" Prepocesses the data from the json """
-
-
 def preprocess_data(data):
+    """ Preprocesses the data from the json """
+    # Preprocess ingredients
     ingredients, stemmed_ingredients = get_ingredients(data)
     print("stemmed_ingedients count", len(stemmed_ingredients))
-    return data, ingredients, stemmed_ingredients
 
+    # Preprocess categories
+    categories, stemmed_categories = get_stemmed_categories(data)
+    print("stemmed categories count", len(stemmed_categories))
 
-""" Prepocesses the data from the json """
+    return data, ingredients, stemmed_ingredients, categories, stemmed_categories
 
 
 def save_preprocessed_data_to_json(json_file_name, preprocessed_data):
+    """ Prepocesses the data from the json """
     new_json_file_name = json_file_name[:7] + "_preprocessed.json"
     with open(new_json_file_name, 'w', encoding="utf-8") as json_data:
         json.dump(preprocessed_data, json_data, ensure_ascii=False)
@@ -340,14 +342,14 @@ def main():
     data_count = len(data)
     ingredient_data = dict()
     ingredients_count_info = dict()
-    ingredients = set()
+    # ingredients = set()
     stemmed_ingredients = set()
-    ingredients = list(ingredients)
+    # ingredients = list(ingredients)
     igredients_stop_words = ['сол', 'пипер', 'олио', 'лук', 'вода',
                              'черен_пипер']
 
     # Preprocesses the data from the json file
-    preprocessed_data, ingredients, stemmed_ingredients = preprocess_data(data)
+    preprocessed_data, ingredients, stemmed_ingredients, categories, stemmed_categories = preprocess_data(data)
     ingredients_count = len(ingredients)
 
     # Saves the preprocessed data into a new file
@@ -360,8 +362,9 @@ def main():
 
     # Prints general info about the recipe data
     print("\nRecipes data information:")
-    print("recipes count: " + str(data_count))
-    print("ingredients count: ", str(ingredients_count))
+    print("recipes count:", data_count)
+    print("ingredients count:", ingredients_count)
+    print("categories count", len(categories))
 
     # Stemmes the ingredients
     # stemmed_ingredients = stemm_ingredients(ingredients)
