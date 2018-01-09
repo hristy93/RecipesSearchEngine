@@ -8,6 +8,7 @@
 import scrapy
 from scrapy.contrib.loader import ItemLoader
 from scrapy.contrib.loader.processor import TakeFirst
+import re
 
 def serialize_recipe_instructions(value):
     if isinstance(value, int):
@@ -40,11 +41,13 @@ def serialize_recipe_comments(comments):
 
 # NOT WORKING
 def serialize_recipe_duration(value):
-    partitioned_item = value.split(' ')
-    if  partitioned_item[0] in ['<', '>']:
-        return partitioned_item[0] + ' ' + partitioned_item[1] 
-    else:
-        return  partitioned_item[0] 
+    return re.findall('\d+', value )[0]
+
+    #partitioned_item = value.split(' ')
+    #if  partitioned_item[0] in ['<', '>']:
+    #    return partitioned_item[0] + ' ' + partitioned_item[1] 
+    #else:
+    #    return  partitioned_item[0] 
 
 class IngredientItem(scrapy.Item):
     name = scrapy.Field(serializer=serialize_ingredient_name)
@@ -58,6 +61,7 @@ class RecipeItem(scrapy.Item):
     name = scrapy.Field()
     instructions = scrapy.Field()
     duration = scrapy.Field(serializer=serialize_recipe_duration)
+    duration_bound = scrapy.Field()
     ingredients = scrapy.Field()
     difficulty = scrapy.Field()
     servings = scrapy.Field()

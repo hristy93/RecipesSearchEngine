@@ -267,8 +267,6 @@ def solr_facet_search_recipe_user_by_field(solr_url, collection_name,
     #    print(docs['name'])
 
 
-# NOT WORKING - need to remove the '>' and '<' from the durations and to make the corresponding
-# field into a an interger one (it's text now)
 def solr_facet_search_recipe_duration_by_field(solr_url, collection_name,
                                                search_input,
                                                search_field="name",
@@ -284,14 +282,15 @@ def solr_facet_search_recipe_duration_by_field(solr_url, collection_name,
         'facet.range': facet_field,
         'facet.range.start': duration_range[0],
         'facet.range.end': duration_range[1],
-        'facet.range.gap': 0
+        'facet.range.gap': 1
     })
     facets = result.get_facets()
     print("facets", facets, "\n")
-    facet_values_as_list = result.get_facet_values_as_list(facet_field)
-    print("facet_values_as_list", facet_values_as_list, "\n")
-    facet_keys_as_list = result.get_facet_keys_as_list(facet_field)
-    print("facet_keys_as_list", facet_keys_as_list, "\n")
+    if len(facets) != 0:
+        facet_values_as_list = result.get_facet_values_as_list(facet_field)
+        print("facet_values_as_list", facet_values_as_list, "\n")
+        facet_keys_as_list = result.get_facet_keys_as_list(facet_field)
+        print("facet_keys_as_list", facet_keys_as_list, "\n")
     result_data = result.data
     # print("result_data", result_data)
     # for docs in result.docs:
@@ -321,10 +320,10 @@ def save_preprocessed_data_to_json(json_file_name, preprocessed_data):
 def main():
     # Defines some variables and constants
     # json_file_name = "recipes_500_refined_edited.json"
-    json_file_name = "recipes.json"
+    json_file_name = "scrapy_crawler/scrapy_crawler/recipes.json"
     user_likes_file_name = "recipes.csv"
     solr_url = "http://localhost:8983/solr"
-    collection_name = "recipes-search-engine"
+    collection_name = "recipes_search_engine"
 
     propability_of_one = 0.6
     # users_count = 20

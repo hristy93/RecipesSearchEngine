@@ -76,6 +76,13 @@ class RecipesSpider(scrapy.Spider):
         item['comments'] = []
         item['url'] = response.url
 
+        # Parse duration bound
+        duration_bound = item['duration'].split(' ')[0]
+        if duration_bound in ['>', '<']:
+            item['duration_bound'] = duration_bound
+        else:
+             item['duration_bound'] = ""
+
         # Parse instructions data
         instructions = list()
         #instructions_data = response.xpath("//li[@class='item mb15 relative
@@ -182,7 +189,15 @@ class RecipesSpider(scrapy.Spider):
         item['comments'] = []
         item['url'] = response.url
 
+        # Parse duration bound
+        duration_bound = item['duration'].split(' ')[0]
+        if duration_bound in ['>', '<']:
+            item['duration_bound'] = duration_bound
+        else:
+             item['duration_bound'] = ""
 
+
+        # Parse instructions
         #instructions_text = response.xpath("//div[@class='field-item-child instructions']/text()").extract() - for lists
         instructions_text = ' \n'.join(response.xpath("//div[@class='field-item-child instructions']/text()").extract()).lstrip().rstrip().strip('\n') 
         if instructions_text == "":
@@ -199,11 +214,11 @@ class RecipesSpider(scrapy.Spider):
         item['instructions'] = instructions_text
 
 
-        ## Parse comments data
+        # Parse comments data
         item['comments'] = response.xpath("//span[@class='_5mdd']/text()").extract()
 
 
-        ## Parse ingredients data
+        # Parse ingredients data
         ingredients = list()
         ingredient_inner_data = IngredientItem()
         ingredients_data = response.xpath("//span[@class='ingredient']")

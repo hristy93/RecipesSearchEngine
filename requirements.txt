@@ -16,3 +16,4 @@ six==1.11.0
 sklearn==0.0
 SolrClient==0.2.1
 urllib3==1.22
+win-unicode-console==0.5
