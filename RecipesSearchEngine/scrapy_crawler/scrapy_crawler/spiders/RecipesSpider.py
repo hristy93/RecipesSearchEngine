@@ -139,6 +139,8 @@ class RecipesSpider(scrapy.Spider):
 
             ingredient_inner_data['unstructured_data'] = quantity + ' ' + unit + ' ' + name
 
+            ingredient_inner_data['common'] = "0"
+
             ingredients.append(ingredient_inner_data)
             #ingredient_info = ingredientLoader.load_item()
         item['ingredients'] = ingredients
@@ -239,6 +241,7 @@ class RecipesSpider(scrapy.Spider):
             ingredient_inner_data['unit'] = unit
             ingredient_inner_data['name'] = name
             ingredient_inner_data['unstructured_data'] = quantity + ' ' + unit + ' ' + name
+            ingredient_inner_data['common'] = "0"
             ingredients.append(ingredient_inner_data)
 
       

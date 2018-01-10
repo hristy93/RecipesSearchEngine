@@ -55,6 +55,7 @@ class IngredientItem(scrapy.Item):
     unit = scrapy.Field(serializer=serialize_ingredient_unit)
     unstructured_data = scrapy.Field()
     is_allergic = scrapy.Field()
+    common = scrapy.Field()
 
 class RecipeItem(scrapy.Item):
     # define the fields for your item here like:
