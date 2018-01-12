@@ -199,8 +199,7 @@ def get_tfidf_data(tf_data, idf_data, data_count):
 
 
 def solr_single_term_search_by_field(solr_url, collection_name,
-                                                 search_input,
-                                                 search_field="name"):
+                                     search_input, search_field="name"):
     """Uses Solr to search with a single term for a recipe name
     or ingredient name (depending on the value of search_field) 
     that is close to the input
@@ -222,8 +221,7 @@ def solr_single_term_search_by_field(solr_url, collection_name,
 
 
 def solr_phrase_search_by_field(solr_url, collection_name,
-                                            search_input,
-                                            search_field="name"):
+                                search_input, search_field="name"):
     """Uses Solr to search with a phrase for for a recipe name
     or ingredient name (depending on the value of search_field) 
     that is exactly the same as the input"""
@@ -337,14 +335,14 @@ def solr_facet_search_recipe_duration_by_field(solr_url, collection_name,
 def preprocess_data(data, igredients_stop_words):
     """ Preprocesses the data from the json """
     # Preprocesses the ingredients
-    ingredients, stemmed_ingredients , common_ingredients_count =\
+    ingredients, stemmed_ingredients, common_ingredients_count =\
        preprocess_ingredients(data, igredients_stop_words)
 
     # Preprocesses the categories
     categories, stemmed_categories = get_stemmed_categories(data)
         
     return (ingredients, stemmed_ingredients, categories,
-                stemmed_categories, common_ingredients_count)
+            stemmed_categories, common_ingredients_count)
 
 
 def save_preprocessed_data_to_json(json_file_name, preprocessed_data):
@@ -415,7 +413,7 @@ def complex_search(solr_url, collection_name, search_input, search_field,
                                 facets_input_query, duration_range,
                                 search_field)
 
-    result = solr.query(collection_name,query_body);
+    result = solr.query(collection_name, query_body)
 
     # Multi-select faceting 
         #'q': query,
@@ -430,9 +428,17 @@ def complex_search(solr_url, collection_name, search_input, search_field,
     url = result.url
     print("url: ", url)
 
-    print("Found {0} results:".format(len(result.docs)))
-    for docs in result.docs:
-        print(docs['name'])
+    results_count = len(result.docs)
+    if results_count != 0:
+        print("Found {0} results:".format(results_count))
+        for docs in result.docs:
+            print(print("  {}".format(docs['name'])))
+    else:
+        spellcheck_data = result.data["spellcheck"]
+        suggested_search_inputs = get_spellchecker_suggestions(solr_url,
+                                                               collection_name,
+                                                               search_input,
+                                                               spellcheck_data)
 
     return result.docs
 
@@ -444,7 +450,7 @@ def delete_all_documents_in_solr(solr_url, collection_name):
     query = "commit=true&stream.body=<delete><query>*:*</query></delete>"
     print("\nDeleting all the documents in the solr collection {0}!"
           .format(collection_name))
-    result = solr.query_raw(collection_name,query, "update")
+    result = solr.query_raw(collection_name, query, "update")
     print("Result {0}".format(result))
 
 
@@ -465,6 +471,65 @@ def delete_all_documents_in_solr(solr_url, collection_name):
 #    #print(data[0])
 #    #result= solr.(collection_name,[add_data])
 #    print(result)
+
+
+def get_spellchecker_suggestions(solr_url, collection_name, search_input,
+                                      spellcheck_data):
+    """ Gets suggestions for the misspelled words in the query input 
+    """
+    suggested_search_inputs = dict()
+    #input_words = search_input.split(" ")
+    suggestions = spellcheck_data["suggestions"]
+    for suggestion in suggestions[1:]:
+        suggested_search_inputs[suggestions[0]] = suggestion["suggestion"]
+
+    return suggested_search_inputs
+
+
+def generate_search_suggestions(solr_url, collection_name, search_input):
+    """ Genererates suggestions while entering an input in the search
+    """
+    solr = SolrClient(solr_url)
+    search_input += "*"
+    new_query = {
+        'suggest.build': 'true',
+        'suggest.q': search_input
+    }
+    print("\nGeneration suggestion on the input {0} ..."
+          .format(search_input[:-1]))
+    result = solr.query(collection_name, new_query, "suggest")
+
+    suggesters = result.data["suggest"]
+    suggesters_results = list()
+
+    # Gets the fuzzy suggestor's results
+    fuzzy_suggester = suggesters["fuzzySuggester"][search_input]
+    fuzzy_suggester_results_count = fuzzy_suggester["numFound"]
+    search_input_lenght = len(search_input[:-1])
+    #fuzzy_suggester_results = [re.sub("^" + search_input[:-1], '<b>' + search_input[:-1] + '</b>', item["term"]) for item in fuzzy_suggester["suggestions"]]
+    fuzzy_suggester_results = ['<b>' + search_input[0].upper() + search_input[1:-1] + '</b>' + item["term"][search_input_lenght:] for item in fuzzy_suggester["suggestions"]]
+    suggesters_results.extend(fuzzy_suggester_results)
+
+    print("  Fuzzy suggester found {0} results:".format(fuzzy_suggester_results_count))
+    for item in fuzzy_suggester_results:
+        print("    {}".format(item))
+
+    # Gets the infix suggestor's results
+    infix_suggester = suggesters["infixSuggester"][search_input]
+    infix_suggester_results_count = infix_suggester["numFound"]
+    infix_suggester_results = [item["term"] for item in infix_suggester["suggestions"] if not item["term"].startswith('<b>')]
+    infix_suggester_results_count = len(infix_suggester_results)
+    suggesters_results.extend(infix_suggester_results)
+
+    print("   Infix suggester found {0} results:".format(infix_suggester_results_count))
+    for item in infix_suggester_results:
+        print("    {}".format(item))
+
+    #print("  The suggester found {0} results:".format(len(suggesters_results)))
+    #for item in fuzzy_suggester_results:
+    #    print("    {}".format(item))
+
+    return suggesters_results
 
 
 def main():
@@ -513,7 +578,6 @@ def main():
     print("  categories count", len(categories))
     print("  stemmed categories count", len(stemmed_categories))
 
-
     # Deletes all the recipes from the Solr collection
     #delete_all_documents_in_solr(solr_url, collection_name)
 
@@ -530,29 +594,30 @@ def main():
 
     # Uses Solr to do a complex search into it's index
     facet_input = dict()
-    #facet_input["category"] = ["основ", "сал"]
-    duration_range = (20, 40)
-    facet_input["duration"] = duration_range
-    facet_input["user_str"] = ["Гомеш"]
-    facet_input["category"] = ["дес", "осн"]
     facet_fields = ["category", "user_str", "duration"]
-    search_input = "сла"
-    search_field = "ingredients.name"
 
+    ##facet_input["category"] = ["основ", "сал"]
+    #duration_range = (20, 40)
+    #facet_input["duration"] = duration_range
+    #facet_input["user_str"] = ["Гомеш"]
+    #facet_input["category"] = ["дес", "осн"]
+    #search_input = "сла"
+    #search_field = "ingredients.name"
+
+    duration_range = (0, 100)
+    search_input = "школод"
+    #search_input = "шпилашко месо"
+    search_field = "ingredients.name"
+ 
+    # Uses Solr to do a complex search into it's index
     complex_search(solr_url, collection_name, search_input, search_field,
                    facet_fields, facet_input, duration_range)
 
-    # Uses Solr to do a complex search into it's index
+    # Generates suggestions to words while entering a search query
+    #search_input = input("\nSearch input: \n")
+    #generate_search_suggestions(solr_url, collection_name, search_input)
+
     """
-    facet_input = dict()
-    facet_input["category"] = ["основ", "сал"]
-    facet_fields = ["category", "user", "duration"]
-    search_input = "карт"
-    duration_range = (20, 40)
-
-    complex_search(solr_url, collection_name, search_input, "ingredients.name",
-                   facet_fields, facet_input, )
-
     # Uses Solr to search into its index
     search_option = input(
         "\nSearch by recipe name (1) or ingredient name (2)\n")
