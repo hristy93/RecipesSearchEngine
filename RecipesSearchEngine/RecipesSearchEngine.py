@@ -145,10 +145,18 @@ def get_stemmed_categories(data, write_back_categories):
     categories = set()
     stemmed_categories = set()
 
+    similar_categories = {
+        "супи": "суп",
+        "супа": "суп"
+    }
+    for category, stemmed_category in similar_categories.items():
+        categories.add(category)
+        stemmed_categories.add(stemmed_category)
+
     for recipe in data:
         # Replaces an unkonwn recipe category with ""
         if recipe["category"] is None:
-            recipe["category"] = ""
+            recipe["category"] = "други"
 
         # Replaces a complex recipe category with a simpler one
         splitted_category = re.split('[`\-=~!@#$%^&*()_+\[\]{};\'\\:"|<,./<>?]', recipe["category"])
@@ -163,9 +171,12 @@ def get_stemmed_categories(data, write_back_categories):
 
         if write_back_categories:
             recipe["category"] = stemm_category
-        stemmed_categories.add(stemm_category)
+
+        if recipe["category"] not in similar_categories.keys():
+            stemmed_categories.add(stemm_category)
 
     print("  Stemmed {0} categories from {1}".format(len(stemmed_categories), len(categories)))
+    print("    Stemmed categories", stemmed_categories)
     return categories, stemmed_categories
 
 
