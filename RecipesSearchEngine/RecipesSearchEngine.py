@@ -51,7 +51,7 @@ def read_json(json_file_name):
     return data
 
 
-def preprocess_ingredients(data, igredients_stop_words):
+def preprocess_ingredients(data, igredients_stop_words, write_back_ingredients):
     """ Prepocesses the ingredients from the json data """
     print("Preprocessing the recipes' ingredients ...")
 
@@ -84,11 +84,12 @@ def preprocess_ingredients(data, igredients_stop_words):
 
                     # Gets the stemmed ingredients
                     stemmed_ingredient = stemm_ingredient(ingredient['name'])
+                    stemmed_ingredients.add(stemmed_ingredient)
 
                     # Writes back the stemmed ingredient into the data
-                    data[recipe_index]['ingredients'][ingredient_index][
-                        'name'] = stemmed_ingredient
-                    stemmed_ingredients.add(stemmed_ingredient)
+                    if write_back_ingredients:
+                        data[recipe_index]['ingredients'][ingredient_index][
+                            'name'] = stemmed_ingredient
     # print("ingredients count: ", str(len(ingredients)))
 
     print("  Found {0} common ingredients from {1}".format(common_ingredients_count, len(ingredients)))
@@ -137,7 +138,7 @@ def stemm_ingredients(ingredients):
     # stemmer.print_word(item)
 
 
-def get_stemmed_categories(data):
+def get_stemmed_categories(data, write_back_categories):
     """Stemms category for each recipe."""
     print("\nPreprocessing the recipes' categories ...")
 
@@ -145,12 +146,23 @@ def get_stemmed_categories(data):
     stemmed_categories = set()
 
     for recipe in data:
-        categories.add(recipe["category"])
+        # Replaces an unkonwn recipe category with ""
         if recipe["category"] is None:
             recipe["category"] = ""
+
+        # Replaces a complex recipe category with a simpler one
+        splitted_category = re.split('[`\-=~!@#$%^&*()_+\[\]{};\'\\:"|<,./<>?]', recipe["category"])
+        if len(splitted_category) != 1:
+            recipe["category"] = splitted_category[0]
+
+        categories.add(recipe["category"])
+
+        # Stemms the category
         stemm_category = stem(recipe["category"])
         # print(recipe["category"], "->", stemm_category)
-        recipe["category"] = stemm_category
+
+        if write_back_categories:
+            recipe["category"] = stemm_category
         stemmed_categories.add(stemm_category)
 
     print("  Stemmed {0} categories from {1}".format(len(stemmed_categories), len(categories)))
@@ -332,14 +344,15 @@ def solr_facet_search_recipe_duration_by_field(solr_url, collection_name,
     return facet_ranges
 
 
-def preprocess_data(data, igredients_stop_words):
+def preprocess_data(data, igredients_stop_words, write_back_ingredients,
+                    write_back_categories):
     """ Preprocesses the data from the json """
     # Preprocesses the ingredients
     ingredients, stemmed_ingredients, common_ingredients_count =\
-       preprocess_ingredients(data, igredients_stop_words)
+       preprocess_ingredients(data, igredients_stop_words, write_back_ingredients)
 
     # Preprocesses the categories
-    categories, stemmed_categories = get_stemmed_categories(data)
+    categories, stemmed_categories = get_stemmed_categories(data, write_back_categories)
         
     return (ingredients, stemmed_ingredients, categories,
             stemmed_categories, common_ingredients_count)
@@ -426,18 +439,19 @@ def complex_search(solr_url, collection_name, search_input, search_field,
     #result_data = result.data
 
     url = result.url
-    print("url: ", url)
+    print("url: ", url, "\n")
 
     results_count = len(result.docs)
     if results_count != 0:
         print("Found {0} results:".format(results_count))
         for docs in result.docs:
-            print(print("  {}".format(docs['name'])))
+            print("  {}".format(docs['name']))
     else:
         spellcheck_data = result.data["spellcheck"]
         suggested_search_inputs = get_spellchecker_suggestions(solr_url,
                                                                collection_name,
                                                                search_input,
+                                                               search_field,
                                                                spellcheck_data)
 
     return result.docs
@@ -474,19 +488,45 @@ def delete_all_documents_in_solr(solr_url, collection_name):
 
 
 def get_spellchecker_suggestions(solr_url, collection_name, search_input,
-                                      spellcheck_data):
+                                 search_field, spellcheck_data):
     """ Gets suggestions for the misspelled words in the query input 
     """
-    suggested_search_inputs = dict()
+    suggested_search_query_words_info = dict()
     #input_words = search_input.split(" ")
+    print("\nGetting the suggestions about the misspelled words in the query " +\
+          "input {0}...".format(search_input))
     suggestions = spellcheck_data["suggestions"]
-    for suggestion in suggestions[1:]:
-        suggested_search_inputs[suggestions[0]] = suggestion["suggestion"]
+    for index, suggestion in enumerate(suggestions):
+        if not isinstance(suggestion, dict):
+            suggested_search_query_words_info[suggestions[index]] =\
+                suggestions[index+1]["suggestion"]
 
-    return suggested_search_inputs
+    suggested_search_query_words = dict()
+    for key, values in suggested_search_query_words_info.items():
+        print("  Found {0} results for {1}:".format(len(values), key))
+        suggested_search_query_words[key] = [value["word"] for value in values]
+        print("    {}".format(suggested_search_query_words[key]))
+
+    print("Getting the suggestions about the misspelled query " +\
+          "input {0} ...".format(search_input))
+    suggested_search_queries_info = list()
+    suggested_search_queries_info = spellcheck_data["collations"]
+    suggested_search_queries = list()
+    print("  Found {0} results:".format(int(len(suggested_search_queries_info) / 2)))
+    for suggested_search_query_info in suggested_search_queries_info:
+        if isinstance(suggested_search_query_info, dict):
+            raw_query = suggested_search_query_info["collationQuery"]
+            query = raw_query[len(search_field) + 2:-1]
+            suggested_search_queries.append(query)
+            print("    {}".format(query))
 
 
-def generate_search_suggestions(solr_url, collection_name, search_input):
+    return suggested_search_query_words, suggested_search_queries
+
+# WORKS FOR THE RECIPES' NAMES ONLY
+# NEEDS TO BE FIXED IN THE SETTINGS AND SCHEMA
+def generate_search_suggestions(solr_url, collection_name, search_input,
+                                search_field):
     """ Genererates suggestions while entering an input in the search
     """
     solr = SolrClient(solr_url)
@@ -502,8 +542,17 @@ def generate_search_suggestions(solr_url, collection_name, search_input):
     suggesters = result.data["suggest"]
     suggesters_results = list()
 
+    # Finds which suggester to use based on the search field:
+    # recipes' names or ingredeints's names
+    if search_field == "name":
+        fuzzy_suggester_name = "recipeNameFuzzySuggester"
+        infix_suggester_name = "recipeNameInfixSuggester"
+    elif search_field == "ingredients.name":
+        fuzzy_suggester_name = "ingredientNameFuzzySuggester"
+        infix_suggester_name = "ingredientNameInfixSuggester"
+
     # Gets the fuzzy suggestor's results
-    fuzzy_suggester = suggesters["fuzzySuggester"][search_input]
+    fuzzy_suggester = suggesters[fuzzy_suggester_name][search_input]
     fuzzy_suggester_results_count = fuzzy_suggester["numFound"]
     search_input_lenght = len(search_input[:-1])
     #fuzzy_suggester_results = [re.sub("^" + search_input[:-1], '<b>' + search_input[:-1] + '</b>', item["term"]) for item in fuzzy_suggester["suggestions"]]
@@ -515,7 +564,7 @@ def generate_search_suggestions(solr_url, collection_name, search_input):
         print("    {}".format(item))
 
     # Gets the infix suggestor's results
-    infix_suggester = suggesters["infixSuggester"][search_input]
+    infix_suggester = suggesters[infix_suggester_name][search_input]
     infix_suggester_results_count = infix_suggester["numFound"]
     infix_suggester_results = [item["term"] for item in infix_suggester["suggestions"] if not item["term"].startswith('<b>')]
     infix_suggester_results_count = len(infix_suggester_results)
@@ -553,12 +602,16 @@ def main():
     igredients_stop_words = ['сол', 'пипер', 'олио', 'лук', 'вода',
                              'захар', 'магданоз', 'босилек', 'подправк', 'кориандър',
                             'канела', 'джодж', 'чубри', 'кими', 'дафинов',
-                            'розмарин', 'мащерка', 'копър']
+                            'розмарин', 'мащерка', 'копър', 'зехтин']
 
     # Preprocesses the data from the json file
+    write_back_ingredients = False
+    write_back_categories = True
     (ingredients, stemmed_ingredients, categories,
         stemmed_categories, common_ingredients_count) =\
-       preprocess_data(data, igredients_stop_words)
+       preprocess_data(data, igredients_stop_words, 
+                       write_back_ingredients, 
+                       write_back_categories)
     ingredients_count = len(ingredients)
 
     # Saves the preprocessed data into a new file
@@ -592,22 +645,23 @@ def main():
     # process_data(data, ingredients, ingredient_data, ingredients_count_info)
     # print(ingredient_data[0])
 
-    # Uses Solr to do a complex search into it's index
+    # Query inputs for the complex search
     facet_input = dict()
     facet_fields = ["category", "user_str", "duration"]
-
-    ##facet_input["category"] = ["основ", "сал"]
-    #duration_range = (20, 40)
-    #facet_input["duration"] = duration_range
-    #facet_input["user_str"] = ["Гомеш"]
-    #facet_input["category"] = ["дес", "осн"]
-    #search_input = "сла"
-    #search_field = "ingredients.name"
-
-    duration_range = (0, 100)
-    search_input = "школод"
-    #search_input = "шпилашко месо"
+    #facet_input["category"] = ["основ", "сал"]
+    duration_range = (20, 40)
+    facet_input["duration"] = duration_range
+    facet_input["user_str"] = ["Гомеш"]
+    facet_input["category"] = ["дес", "осн"]
+    search_input = "сла"
     search_field = "ingredients.name"
+
+    # Query inputs for the spellchecker
+    #duration_range = (0, 100)
+    #search_input = "школод"
+    #search_input = "пилашко месо"
+    #search_input = "шоколдови бисвити"
+    #search_field = "name"
  
     # Uses Solr to do a complex search into it's index
     complex_search(solr_url, collection_name, search_input, search_field,
@@ -615,7 +669,9 @@ def main():
 
     # Generates suggestions to words while entering a search query
     #search_input = input("\nSearch input: \n")
-    #generate_search_suggestions(solr_url, collection_name, search_input)
+    #search_field = "name"
+    #generate_search_suggestions(solr_url, collection_name, search_input,
+    #                            search_field)
 
     """
     # Uses Solr to search into its index

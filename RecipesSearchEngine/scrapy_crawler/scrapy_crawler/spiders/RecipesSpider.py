@@ -125,7 +125,7 @@ class RecipesSpider(scrapy.Spider):
 
             quantity = ingredient.xpath("span/span[@class='productQuantities']/text()").extract()[0]
             unit = ingredient.xpath("span[@class='productItem mr20 colorDef bold']/text()").extract()[0]
-            name = ingredient.xpath("a[@class='color3 productName']/text()").extract()[0]
+            name = ingredient.xpath("a[@class='color3 productName']/text()").extract()[0].lstrip().rstrip
         
 
             #ingredientLoader.add_value('quantity', quantities[index])
