@@ -28,6 +28,7 @@ from bulgarian_stemmer.bulgarian_stemmer import BulgarianStemmer
 from bulgarian_stemmer.bulstem import *
 from bs4 import BeautifulSoup
 from SolrClient import SolrClient
+from transliterate import translit, get_available_language_codes
 
 
 def enable_win_unicode_console():
@@ -58,18 +59,15 @@ def preprocess_ingredients(data, igredients_stop_words, write_back_ingredients):
     ingredients = set()
     stemmed_ingredients = set()
     common_ingredients_count = 0
+    ingredients_count = 0
 
-    for recipe_index, item in enumerate(data):
-        for ingredient_index, ingredient in enumerate(item['ingredients']):
+    for item in data:
+        for ingredient in item['ingredients']:
             if ingredient['name'] != '':
+                ingredients.add(ingredient['name'])
+                ingredients_count += 1
                 
                 # Marks the ingredients from the stop words list as common
-                #test = any([re.match(".*{}.*".format(ingredient['name']), item) for 
-                #        item in igredients_stop_words])
-                #if ingredient['name'] == "кафява захар":
-                #    pass
-                #if test:
-                    #print(ingredient['name'])
                 if ingredient['name'] in igredients_stop_words or \
                     any([item for item in igredients_stop_words if item in ingredient['name']]):
                    
@@ -77,23 +75,23 @@ def preprocess_ingredients(data, igredients_stop_words, write_back_ingredients):
                     #      .format(ingredient['name']))
                     common_ingredients_count += 1
                     #del ingredient['name']
+                    #data[recipe_index]['ingredients'][ingredient_index][
+                    #    'common'] = '1'
+                    ingredient['common'] = 1
+                    
+                # Gets the stemmed ingredients
+                stemmed_ingredient = stemm_ingredient(ingredient['name'])
+                stemmed_ingredients.add(stemmed_ingredient)
+
+                # Writes back the stemmed ingredient into the data
+                if write_back_ingredients:
                     data[recipe_index]['ingredients'][ingredient_index][
-                        'common'] = '1'
-                else:
-                    ingredients.add(ingredient['name'])
-
-                    # Gets the stemmed ingredients
-                    stemmed_ingredient = stemm_ingredient(ingredient['name'])
-                    stemmed_ingredients.add(stemmed_ingredient)
-
-                    # Writes back the stemmed ingredient into the data
-                    if write_back_ingredients:
-                        data[recipe_index]['ingredients'][ingredient_index][
-                            'name'] = stemmed_ingredient
+                        'name'] = stemmed_ingredient
     # print("ingredients count: ", str(len(ingredients)))
 
-    print("  Found {0} common ingredients from {1}".format(common_ingredients_count, len(ingredients)))
-    print("  Stemmed {0} ingedients from {1}".format(len(stemmed_ingredients), len(ingredients)))
+    print("  Found {0} common ingredients from {1}".format(common_ingredients_count, ingredients_count))
+    print("  Found {0} unique ingredients from {1}".format(len(ingredients), ingredients_count))
+    print("  Stemmed {0} ingedients from {1} unique ones".format(len(stemmed_ingredients), len(ingredients)))
     return ingredients, stemmed_ingredients, common_ingredients_count
 
 
@@ -289,7 +287,7 @@ def solr_facet_search_recipe_category_by_field(solr_url, collection_name,
                                                search_input,
                                                categories_facet_input_query,
                                                search_field="name",
-                                               facet_field="category"):
+                                               facet_field="category_str"):
     """Uses Solr to search with a facet for a recipe's category"""
     solr = SolrClient(solr_url)
     query = "{0}:*{1}*".format(search_field, search_input)
@@ -378,7 +376,7 @@ def solr_facet_search_recipe_duration_by_field(solr_url, collection_name,
 
 def preprocess_data(data, igredients_stop_words, write_back_ingredients,
                     write_back_categories):
-    """ Preprocesses the data from the json """
+    """ Preprocesses the data from the JSON file """
     # Preprocesses the ingredients
     ingredients, stemmed_ingredients, common_ingredients_count =\
        preprocess_ingredients(data, igredients_stop_words, write_back_ingredients)
@@ -392,16 +390,71 @@ def preprocess_data(data, igredients_stop_words, write_back_ingredients,
 
 def save_preprocessed_data_to_json(json_file_name, preprocessed_data):
     """ Prepocesses the data from the json """
-    new_json_file_name = json_file_name[-12:-5] + "_preprocessed.json"
+    json_file_name_lenght = len(json_file_name) - json_file_name.rfind('/') - 1
+    new_json_file_name = json_file_name[-json_file_name_lenght:-5] + "_preprocessed.json"
     with open(new_json_file_name, 'w', encoding="utf-8") as json_data:
         json.dump(preprocessed_data, json_data, ensure_ascii=False)
+
+
+def preprocess_search_input(search_input, search_field):
+    """ Preprocesses the search input """
+    
+    # Preprocesses the search input if it contains
+    # only latin letters
+    #is_latin = re.match("[a-zA-Z]*", search_input)
+    #if is_latin:
+    #   test = get_available_language_codes()
+    #   test1 = translit(search_input, 'bg')
+
+    # Checks if the search input is incorrect
+    is_search_input_incorrect = re.search(r'[^а-яА-Я ]+', search_input)
+    if is_search_input_incorrect:
+        return None
+
+
+    # Preprocesses the serach input if the search is it is a boolean query
+    # with AND - 'и' and/or OR - 'или'
+    if ' и ' in search_input or ' или ' in search_input:
+       search_input = search_input.lower()
+       search_input_splitted = search_input.split(' ')
+       search_input = " ".join(["*{}*".format(stem(item)) for item in search_input_splitted])
+       search_input = re.sub(' \*или\* ', ' OR ', search_input)
+       search_input = re.sub(' \*и\* ', ' AND ', search_input)
+       #replacer = re.compile(r'(\w+)')
+       #search_input = replacer.sub(r'*\1*', search_input)
+
+    return search_input
+
+
+def get_incorrect_input_suggestion(search_input):
+    """ Gets an suggestion about an incorrectly written
+    search input
+    """
+    print("\nGetting suggestions about the incorrect input: {0}".format(search_input))
+    suggested_search_input = re.sub(r'[^а-яА-Я ]+', '', search_input)
+    print("  Result:", "\n", suggested_search_input)
+    return suggested_search_input
+
 
 def complex_search(solr_url, collection_name, search_input, search_field,
                    facet_fields, facet_input, duration_range):
     """Uses Solr to do a complex search with all types of seaches 
     and facets
     """
+
     solr = SolrClient(solr_url)
+
+    # Gets the preprocessed search input
+    preprocessed_search_input = preprocess_search_input(search_input, search_field)
+    
+    # Checks if the search input is incorrect and suggests an alternative
+    if preprocessed_search_input == None:
+        print("Incorrect input!")
+        incorrect_input_suggestion = get_incorrect_input_suggestion(search_input)
+        return {"suggestion" : incorrect_input_suggestion}
+    else:
+        search_input = preprocessed_search_input
+
     query = "{0}:*{1}*".format(search_field, search_input)
     query_body = dict()
     query_body['q'] = query
@@ -497,6 +550,7 @@ def delete_all_documents_in_solr(solr_url, collection_name):
     print("\nDeleting all the documents in the solr collection {0}!"
           .format(collection_name))
     result = solr.query_raw(collection_name, query, "update")
+    commit_result = solr.commit(collection_name)
     print("Result {0}".format(result))
 
 
@@ -506,16 +560,34 @@ def delete_all_documents_in_solr(solr_url, collection_name):
 #    collection
 #    """
 #    solr = SolrClient(solr_url)
-#    query = "?wt=json&{add:" + str(str(data[0]).encode('utf-8')) + "}&commit=true"
+#    #query = "?wt=json&{add:" + str(str(data[0]).encode('utf-8')) + "}&commit=true"
+#    #print("\nAdding the documents in the JSON file {0} into the Solr " +\
+#    #   "collection {1}".format(json_file_name, collection_name))
+#    #result = solr.query_raw(collection_name, query, "update/json/docs")
+
 #    print("\nAdding the documents in the JSON file {0} into the Solr " +\
 #       "collection {1}".format(json_file_name, collection_name))
-#    result = solr.query(collection_name,query, "update/json/docs")
-#    #add_data = dict()
-#    #for item in data:
-#    #    add_data["add"] = dict()
-#    #    add_data["add"]["doc"] = item
-#    #print(data[0])
-#    #result= solr.(collection_name,[add_data])
+#    new_docs = list()
+#    new_recipe = dict()
+#    for new_recipe in data[4:7]:
+#        new_recipe["ingredients.name"] = list()
+#        new_recipe["ingredients.unit"] = list()
+#        new_recipe["ingredients.quantity"] = list()
+#        new_recipe["ingredients.unstructured_data"] = list()
+#        new_recipe["ingredients.common"] = list()
+#        for ingredient_inner_data in new_recipe["ingredients"]:
+#            new_recipe["ingredients.name"].append(ingredient_inner_data["name"])
+#            new_recipe["ingredients.unit"].append(ingredient_inner_data["unit"])
+#            new_recipe["ingredients.quantity"].append(ingredient_inner_data["quantity"])
+#            new_recipe["ingredients.unstructured_data"].append(ingredient_inner_data["unstructured_data"])
+#            new_recipe["ingredients.common"].append(ingredient_inner_data["common"])
+#        del new_recipe["ingredients"]
+#        new_docs.append(new_recipe)
+#    query = "?wt=json&{add:" + str(str(new_docs).encode('utf-8')) + "}&commit=true"
+#    result = solr.index_json(collection_name, json.dumps(new_docs))
+#    commit_result = solr.commit(collection_name)
+#    result = solr.query_raw(collection_name, query, "update/json/docs")
+#    commit_result = solr.commit(collection_name)
 #    print(result)
 
 
@@ -647,7 +719,7 @@ def main():
     ingredients_count = len(ingredients)
 
     # Saves the preprocessed data into a new file
-    save_preprocessed_data_to_json(json_file_name, data)
+    #save_preprocessed_data_to_json(json_file_name, data)
 
     # for recipe filtering by category id
     # recipe_category_id = 1
@@ -657,7 +729,7 @@ def main():
     # Prints general info about the recipe data
     print("\nRecipes data information:")
     print("  recipes count:", data_count)
-    print("  ingredients count:", ingredients_count)
+    print("  unique ingredients count:", ingredients_count)
     print("  stemmed ingredients count:", len(stemmed_ingredients))
     print("  common ingredients count:", common_ingredients_count)
     print("  categories count", len(categories))
@@ -677,7 +749,7 @@ def main():
     # process_data(data, ingredients, ingredient_data, ingredients_count_info)
     # print(ingredient_data[0])
 
-    # Query inputs for the complex search
+    # Complex query inputs for the complex search
     facet_input = dict()
     facet_fields = ["category", "user_str", "duration"]
     #facet_input["category"] = ["основ", "сал"]
@@ -687,6 +759,15 @@ def main():
     facet_input["category"] = ["дес", "осн"]
     search_input = "сла"
     search_field = "ingredients.name"
+
+    # Multiple query inputs for the complex search
+    duration_range = (0, 100)
+    #search_input = "картофи или пиле"
+    #search_input = "kartofi ili pile"
+    #search_input = "картофи или пиле"
+    #search_input = "Пай с пуйка и шунка"
+    #search_field = "name"
+
 
     # Query inputs for the spellchecker
     #duration_range = (0, 100)
