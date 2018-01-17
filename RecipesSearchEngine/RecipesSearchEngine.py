@@ -173,7 +173,7 @@ def get_stemmed_categories(data, write_back_categories):
         if len(common) == 0:
             data[recipe_index]["category"] = simple_categories[0]
         else:
-            data[recipe_index]["category"] = common[0]
+            data[recipe_index]["category"] = next(iter(common))
 
         categories, stemmed_categories = preprocess_recipe_categories(
             data[recipe_index], categories, stemmed_categories,
@@ -554,42 +554,79 @@ def delete_all_documents_in_solr(solr_url, collection_name):
     print("Result {0}".format(result))
 
 
-# NOT WORKING
-#def add_documents_in_solr(solr_url, collection_name, json_file_name, data):
-#    """ Adds the recipes in the JSON file (data) into the Solr
-#    collection
-#    """
-#    solr = SolrClient(solr_url)
-#    #query = "?wt=json&{add:" + str(str(data[0]).encode('utf-8')) + "}&commit=true"
-#    #print("\nAdding the documents in the JSON file {0} into the Solr " +\
-#    #   "collection {1}".format(json_file_name, collection_name))
-#    #result = solr.query_raw(collection_name, query, "update/json/docs")
+def add_documents_in_solr(solr_url, collection_name, json_file_name, data):
+    """ Adds the recipes in the JSON file (data) into the Solr
+    collection
+    """
 
-#    print("\nAdding the documents in the JSON file {0} into the Solr " +\
-#       "collection {1}".format(json_file_name, collection_name))
-#    new_docs = list()
-#    new_recipe = dict()
-#    for new_recipe in data[4:7]:
-#        new_recipe["ingredients.name"] = list()
-#        new_recipe["ingredients.unit"] = list()
-#        new_recipe["ingredients.quantity"] = list()
-#        new_recipe["ingredients.unstructured_data"] = list()
-#        new_recipe["ingredients.common"] = list()
-#        for ingredient_inner_data in new_recipe["ingredients"]:
-#            new_recipe["ingredients.name"].append(ingredient_inner_data["name"])
-#            new_recipe["ingredients.unit"].append(ingredient_inner_data["unit"])
-#            new_recipe["ingredients.quantity"].append(ingredient_inner_data["quantity"])
-#            new_recipe["ingredients.unstructured_data"].append(ingredient_inner_data["unstructured_data"])
-#            new_recipe["ingredients.common"].append(ingredient_inner_data["common"])
-#        del new_recipe["ingredients"]
-#        new_docs.append(new_recipe)
-#    query = "?wt=json&{add:" + str(str(new_docs).encode('utf-8')) + "}&commit=true"
-#    result = solr.index_json(collection_name, json.dumps(new_docs))
-#    commit_result = solr.commit(collection_name)
-#    result = solr.query_raw(collection_name, query, "update/json/docs")
-#    commit_result = solr.commit(collection_name)
-#    print(result)
+    #delete_all_documents_in_solr(solr_url, collection_name)
 
+
+    print("\nAdding the documents in the JSON file {0} into the Solr " +\
+       "collection {1}".format(json_file_name, collection_name))
+    solr = SolrClient(solr_url)
+    new_docs = list()
+    new_recipe = dict()
+    data_size = len(data)
+    separation_length = 100
+    print("Data lenght: ", data_size)
+    if len(data) <= separation_length:
+        start = 0
+        end = data_size
+    else:
+        start = 0
+        end = start + separation_length
+        if end > data_size:
+            end = data_size 
+    while end <= data_size:
+        print("start: ", str(start), " end: ", str(end))
+        new_docs = list()
+        new_recipe = dict()
+        for new_recipe in data[start : end]:
+            # Replaces the character '%' with it's corresponding word 
+            # or it is escaped
+            for ingredient in new_recipe["ingredients"]:
+                for key, value in ingredient.items():
+                    if type(value) is str and "%" in value:
+                        ingredient[key] = re.sub("%"," процента ", value)
+            for comment in new_recipe["comments"]:
+                if "http" in comment[0] and "%" in comment[0]:
+                    comment[0] = re.sub("%", "%25", comment[0])
+                elif "%" in comment[0]:
+                    comment[0] = re.sub("%", " процента ", comment[0])
+            if "%" in new_recipe["instructions"]:
+                new_recipe["instructions"] = re.sub("%"," процента ", new_recipe["instructions"])
+            # Flattens the ingredients into separate key-value pairs
+            new_recipe["ingredients.name"] = list()
+            new_recipe["ingredients.unit"] = list()
+            new_recipe["ingredients.quantity"] = list()
+            new_recipe["ingredients.unstructured_data"] = list()
+            new_recipe["ingredients.common"] = list()
+            for ingredient_inner_data in new_recipe["ingredients"]:
+                new_recipe["ingredients.name"].append(ingredient_inner_data["name"])
+                new_recipe["ingredients.unit"].append(ingredient_inner_data["unit"])
+                new_recipe["ingredients.quantity"].append(ingredient_inner_data["quantity"])
+                new_recipe["ingredients.unstructured_data"].append(ingredient_inner_data["unstructured_data"])
+                new_recipe["ingredients.common"].append(ingredient_inner_data["common"])
+            # Removes the complex ingredients data
+            del new_recipe["ingredients"]
+            new_docs.append(new_recipe)
+
+        # Prepares and executes the needed queries in order to send data to Solr
+        query = "?wt=json&{add:" + str(str(new_docs).encode('utf-8')) + "}&commit=true"
+        result = solr.index_json(collection_name, json.dumps(new_docs))
+        commit_result = solr.commit(collection_name)
+        result = solr.query_raw(collection_name, query, "update/json/docs")
+        commit_result = solr.commit(collection_name)
+        print(result)
+
+        start += separation_length
+        end += separation_length
+        #if start >= len(data) and end >= len(data):
+        #    start -= separation_length
+        #    end = len(data)
+        if start < data_size and end >= data_size:
+            end = data_size
 
 def get_spellchecker_suggestions(solr_url, collection_name, search_input,
                                  search_field, spellcheck_data):
@@ -688,7 +725,7 @@ def generate_search_suggestions(solr_url, collection_name, search_input,
 def main():
     # Defines some variables and constants
     # json_file_name = "recipes_500_refined_edited.json"
-    json_file_name = "scrapy_crawler/scrapy_crawler/recipes.json"
+    json_file_name = "scrapy_crawler/scrapy_crawler/recipes_new.json"
     solr_url = "http://localhost:8983/solr"
     collection_name = "recipes_search_engine"
     tfidf_data = []
