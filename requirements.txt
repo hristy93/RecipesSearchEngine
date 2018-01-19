@@ -2,6 +2,8 @@ beautifulsoup4==4.6.0
 bs4==0.0.1
 certifi==2017.11.5
 chardet==3.0.4
+Django==2.0.1
+django-extensions==1.9.9
 idna==2.6
 kazoo==2.2.1
 nltk==3.2.5
@@ -15,5 +17,7 @@ scipy==1.0.0
 six==1.11.0
 sklearn==0.0
 SolrClient==0.2.1
+transliterate==1.10
+typing==3.6.2
 urllib3==1.22
-win-unicode-console==0.5
+Werkzeug==0.14.1
