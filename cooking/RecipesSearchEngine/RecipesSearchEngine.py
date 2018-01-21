@@ -172,7 +172,7 @@ def get_stemmed_categories(data, write_back_categories):
         if len(common) == 0:
             data[recipe_index]["category"] = simple_categories[0]
         else:
-            data[recipe_index]["category"] = common[0]
+            data[recipe_index]["category"] = next(iter(common))
 
         categories, stemmed_categories = preprocess_recipe_categories(
             data[recipe_index], categories, stemmed_categories,
@@ -436,11 +436,11 @@ def get_incorrect_input_suggestion(search_input):
 
 
 def complex_search(solr_url, collection_name, search_input, search_field,
-                   facet_fields, facet_input, duration_range):
+                   facet_fields, facet_input, duration_range = ()):
     """Uses Solr to do a complex search with all types of seaches 
     and facets
     """
-
+    print("Searching for {0}".format(search_input))
     solr = SolrClient(solr_url)
 
     # Gets the preprocessed search input
@@ -526,17 +526,42 @@ def complex_search(solr_url, collection_name, search_input, search_field,
     print("url: ", url, "\n")
 
     results_count = len(result.docs)
-    if results_count != 0:
+    spellcheck_data = result.data["spellcheck"]
+
+    if not spellcheck_data["correctlySpelled"]:
+        suggested_search_query_words, suggested_search_queries =\
+           get_spellchecker_suggestions(solr_url,
+                                        collection_name,
+                                        search_input,
+                                        search_field,
+                                        spellcheck_data)
+        return suggested_search_query_words, suggested_search_queries
+
+        #if not suggested_search_query_words and not suggested_search_queries:
+        #    spitted_search_input = search_input.split(" ")
+        #    for item in spitted_search_input:
+        #        suggested_search_item_words, suggested_search_item =\
+        #            get_spellchecker_suggestions(solr_url,
+        #                                         collection_name,
+        #                                         item,
+        #                                         search_field,
+        #                                         spellcheck_data)
+    else:
         print("Found {0} results:".format(results_count))
         for docs in result.docs:
             print("  {}".format(docs['name']))
-    else:
-        spellcheck_data = result.data["spellcheck"]
-        suggested_search_inputs = get_spellchecker_suggestions(solr_url,
-                                                               collection_name,
-                                                               search_input,
-                                                               search_field,
-                                                               spellcheck_data)
+
+    #if results_count != 0:
+    #    print("Found {0} results:".format(results_count))
+    #    for docs in result.docs:
+    #        print("  {}".format(docs['name']))
+    #else:
+        #spellcheck_data = result.data["spellcheck"]
+        #suggested_search_inputs = get_spellchecker_suggestions(solr_url,
+        #                                                       collection_name,
+        #                                                       search_input,
+        #                                                       search_field,
+        #                                                       spellcheck_data)
 
     return result.docs
 
@@ -553,42 +578,80 @@ def delete_all_documents_in_solr(solr_url, collection_name):
     print("Result {0}".format(result))
 
 
-# NOT WORKING
-#def add_documents_in_solr(solr_url, collection_name, json_file_name, data):
-#    """ Adds the recipes in the JSON file (data) into the Solr
-#    collection
-#    """
-#    solr = SolrClient(solr_url)
-#    #query = "?wt=json&{add:" + str(str(data[0]).encode('utf-8')) + "}&commit=true"
-#    #print("\nAdding the documents in the JSON file {0} into the Solr " +\
-#    #   "collection {1}".format(json_file_name, collection_name))
-#    #result = solr.query_raw(collection_name, query, "update/json/docs")
+def add_documents_in_solr(solr_url, collection_name, json_file_name, data):
+    """ Adds the recipes in the JSON file (data) into the Solr
+    collection
+    """
 
-#    print("\nAdding the documents in the JSON file {0} into the Solr " +\
-#       "collection {1}".format(json_file_name, collection_name))
-#    new_docs = list()
-#    new_recipe = dict()
-#    for new_recipe in data[4:7]:
-#        new_recipe["ingredients.name"] = list()
-#        new_recipe["ingredients.unit"] = list()
-#        new_recipe["ingredients.quantity"] = list()
-#        new_recipe["ingredients.unstructured_data"] = list()
-#        new_recipe["ingredients.common"] = list()
-#        for ingredient_inner_data in new_recipe["ingredients"]:
-#            new_recipe["ingredients.name"].append(ingredient_inner_data["name"])
-#            new_recipe["ingredients.unit"].append(ingredient_inner_data["unit"])
-#            new_recipe["ingredients.quantity"].append(ingredient_inner_data["quantity"])
-#            new_recipe["ingredients.unstructured_data"].append(ingredient_inner_data["unstructured_data"])
-#            new_recipe["ingredients.common"].append(ingredient_inner_data["common"])
-#        del new_recipe["ingredients"]
-#        new_docs.append(new_recipe)
-#    query = "?wt=json&{add:" + str(str(new_docs).encode('utf-8')) + "}&commit=true"
-#    result = solr.index_json(collection_name, json.dumps(new_docs))
-#    commit_result = solr.commit(collection_name)
-#    result = solr.query_raw(collection_name, query, "update/json/docs")
-#    commit_result = solr.commit(collection_name)
-#    print(result)
+    delete_all_documents_in_solr(solr_url, collection_name)
 
+
+    print("\nAdding the documents in the JSON file {0} into the Solr " +\
+       "collection {1}".format(json_file_name, collection_name))
+    solr = SolrClient(solr_url)
+    new_docs = list()
+    new_recipe = dict()
+    data_size = len(data)
+    separation_length = 100
+    print("Data lenght: ", data_size)
+    if len(data) <= separation_length:
+        start = 0
+        end = data_size
+    else:
+        start = 0
+        end = start + separation_length
+        if end > data_size:
+            end = data_size 
+    while end <= data_size:
+        print("start: ", str(start), " end: ", str(end))
+        new_docs = list()
+        new_recipe = dict()
+        for new_recipe in data[start : end]:
+            # Replaces the character '%' with it's corresponding word 
+            # or it is escaped
+            for ingredient in new_recipe["ingredients"]:
+                for key, value in ingredient.items():
+                    if type(value) is str and "%" in value:
+                        ingredient[key] = re.sub("%"," процента ", value)
+            for comment in new_recipe["comments"]:
+                if "http" in comment[0] and "%" in comment[0]:
+                    comment[0] = re.sub("%", "%25", comment[0])
+                elif "%" in comment[0]:
+                    comment[0] = re.sub("%", " процента ", comment[0])
+            if "%" in new_recipe["instructions"]:
+                new_recipe["instructions"] = re.sub("%"," процента ", new_recipe["instructions"])
+            # Flattens the ingredients into separate key-value pairs
+            new_recipe["ingredients.name"] = list()
+            new_recipe["ingredients.unit"] = list()
+            new_recipe["ingredients.quantity"] = list()
+            new_recipe["ingredients.unstructured_data"] = list()
+            new_recipe["ingredients.common"] = list()
+            for ingredient_inner_data in new_recipe["ingredients"]:
+                if ingredient_inner_data["common"] == "0":
+                    new_recipe["ingredients.name"].append(ingredient_inner_data["name"])
+                    new_recipe["ingredients.unit"].append(ingredient_inner_data["unit"])
+                    new_recipe["ingredients.quantity"].append(ingredient_inner_data["quantity"])
+                    new_recipe["ingredients.unstructured_data"].append(ingredient_inner_data["unstructured_data"])
+                    new_recipe["ingredients.common"].append(ingredient_inner_data["common"])
+            # Removes the complex ingredients data
+            del new_recipe["ingredients"]
+            new_docs.append(new_recipe)
+
+        # Prepares and executes the needed queries in order to send data to Solr
+        query = "?wt=json&{add:" + str(str(new_docs).encode('utf-8')) + "}&commit=true"
+        result = solr.index_json(collection_name, json.dumps(new_docs))
+        commit_result = solr.commit(collection_name)
+        result = solr.query_raw(collection_name, query, "update/json/docs")
+        commit_result = solr.commit(collection_name)
+        print(result)
+
+        start += separation_length
+        end += separation_length
+        #if start >= len(data) and end >= len(data):
+        #    start -= separation_length
+        #    end = len(data)
+        if start < data_size and end >= data_size:
+            end = data_size
 
 def get_spellchecker_suggestions(solr_url, collection_name, search_input,
                                  search_field, spellcheck_data):
@@ -619,7 +682,7 @@ def get_spellchecker_suggestions(solr_url, collection_name, search_input,
     for suggested_search_query_info in suggested_search_queries_info:
         if isinstance(suggested_search_query_info, dict):
             raw_query = suggested_search_query_info["collationQuery"]
-            query = raw_query[len(search_field) + 2:-1]
+            query = raw_query[len(search_field) + 2:-1].lstrip("(").rstrip(")")
             suggested_search_queries.append(query)
             print("    {}".format(query))
 
@@ -634,15 +697,6 @@ def generate_search_suggestions(solr_url, collection_name, search_input,
     """
     solr = SolrClient(solr_url)
     search_input += "*"
-    new_query = {
-        'suggest.build': 'true',
-        'suggest.q': search_input
-    }
-    print("\nGeneration suggestion on the input {0} ..."
-          .format(search_input[:-1]))
-    result = solr.query(collection_name, new_query, "suggest")
-
-    suggesters = result.data["suggest"]
     suggesters_results = list()
 
     # Finds which suggester to use based on the search field:
@@ -654,20 +708,43 @@ def generate_search_suggestions(solr_url, collection_name, search_input,
         fuzzy_suggester_name = "ingredientNameFuzzySuggester"
         infix_suggester_name = "ingredientNameInfixSuggester"
 
+    new_query = {
+        'suggest.build': 'true',
+        'suggest.q': search_input,
+        'suggest.dictionary': fuzzy_suggester_name
+    }
+
+    print("\nGeneration fuzzy suggestion on the input {0} ..."
+          .format(search_input[:-1]))
+    result = solr.query(collection_name, new_query, "suggest")
+
     # Gets the fuzzy suggestor's results
-    fuzzy_suggester = suggesters[fuzzy_suggester_name][search_input]
-    fuzzy_suggester_results_count = fuzzy_suggester["numFound"]
+
+    fuzzy_suggester = result.data["suggest"][fuzzy_suggester_name][search_input]
     search_input_lenght = len(search_input[:-1])
     #fuzzy_suggester_results = [re.sub("^" + search_input[:-1], '<b>' + search_input[:-1] + '</b>', item["term"]) for item in fuzzy_suggester["suggestions"]]
-    fuzzy_suggester_results = ['<b>' + search_input[0].upper() + search_input[1:-1] + '</b>' + item["term"][search_input_lenght:] for item in fuzzy_suggester["suggestions"]]
+    fuzzy_suggester_results = ['<b>' + search_input[0].upper() + search_input[1:-1] +\
+                               '</b>' + item["term"][search_input_lenght:] for item
+                               in fuzzy_suggester["suggestions"] if search_input in item]
+    fuzzy_suggester_results_count = len(fuzzy_suggester_results)
     suggesters_results.extend(fuzzy_suggester_results)
 
     print("  Fuzzy suggester found {0} results:".format(fuzzy_suggester_results_count))
     for item in fuzzy_suggester_results:
         print("    {}".format(item))
 
+    new_query = {
+        'suggest.build': 'true',
+        'suggest.q': search_input,
+        'suggest.dictionary': infix_suggester_name
+    }
+
+    print("\nGeneration infix suggestion on the input {0} ..."
+          .format(search_input[:-1]))
+    result = solr.query(collection_name, new_query, "suggest")
+
     # Gets the infix suggestor's results
-    infix_suggester = suggesters[infix_suggester_name][search_input]
+    infix_suggester = result.data["suggest"][infix_suggester_name][search_input]
     infix_suggester_results_count = infix_suggester["numFound"]
     infix_suggester_results = [item["term"] for item in infix_suggester["suggestions"] if not item["term"].startswith('<b>')]
     infix_suggester_results_count = len(infix_suggester_results)
@@ -677,17 +754,39 @@ def generate_search_suggestions(solr_url, collection_name, search_input,
     for item in infix_suggester_results:
         print("    {}".format(item))
 
-    #print("  The suggester found {0} results:".format(len(suggesters_results)))
-    #for item in fuzzy_suggester_results:
-    #    print("    {}".format(item))
+    print("  The suggester found {0} results:".format(len(suggesters_results)))
+    for item in fuzzy_suggester_results:
+        print("    {}".format(item))
 
     return suggesters_results
 
 
+def more_like_this_recipe(solr_url, collection_name, search_input,
+                          category, results_count = 5, search_field = "name"):
+    """Uses Solr to search a similar recicpes to a given one"""
+    print("\nFinding the recipes that are close to {0} ...".format(search_input))
+    solr = SolrClient(solr_url)
+    query = "{0}:\"{1}\"".format(search_field, search_input)
+    #query += "AND ingredients.common:0^{0}".format(uncommon_ingredients_boost)
+    result = solr.query(collection_name, {
+        'q': query,
+        'fl': "* , score",
+        'fq': "category_str:{0}".format(stem(category))
+    }, "mlt")
+
+    result_data = result.data
+    # print("result_data", result_data)
+
+    print("  Found top {0} results:".format(results_count))
+    for docs in result.docs[:results_count]:
+        print("    {0}".format(docs['name']))
+
+    return result.docs[:results_count]
+
 def main():
     # Defines some variables and constants
     # json_file_name = "recipes_500_refined_edited.json"
-    json_file_name = "scrapy_crawler/scrapy_crawler/recipes.json"
+    json_file_name = "scrapy_crawler/scrapy_crawler/recipes_new.json"
     solr_url = "http://localhost:8983/solr"
     collection_name = "recipes_search_engine"
     tfidf_data = []
@@ -703,8 +802,8 @@ def main():
     stemmed_ingredients = set()
     # ingredients = list(ingredients)
     igredients_stop_words = ['сол', 'пипер', 'олио', 'лук', 'вода',
-                             'захар', 'магданоз', 'босилек', 'подправк', 'кориандър',
-                            'канела', 'джодж', 'чубри', 'кими', 'дафинов',
+                             'захар', 'магданоз', 'босилек', 'подправк',
+                            'кориандър', 'джодж', 'чубри', 'кими', 'дафинов',
                             'розмарин', 'мащерка', 'копър', 'зехтин']
 
     # Preprocesses the data from the json file
@@ -752,7 +851,7 @@ def main():
     facet_input = dict()
     facet_fields = ["category", "user_str", "duration"]
     #facet_input["category"] = ["основ", "сал"]
-    duration_range = (20, 40)
+    #duration_range = (20, 40)
     facet_input["duration"] = duration_range
     facet_input["user_str"] = ["Гомеш"]
     facet_input["category"] = ["дес", "осн"]
@@ -767,13 +866,19 @@ def main():
     #search_input = "Пай с пуйка и шунка"
     #search_field = "name"
 
-
     # Query inputs for the spellchecker
-    #duration_range = (0, 100)
+    #duration_range = (0, 300)
     #search_input = "школод"
     #search_input = "пилашко месо"
     #search_input = "шоколдови бисвити"
+    #search_input = "шоколадови бисквити"
+    #search_input = "червенаябълка"
+
     #search_field = "name"
+
+    #search_input = "канелен"
+    #search_field = "name"
+    #duration_range = (0, 300)
  
     # Uses Solr to do a complex search into it's index
     complex_search(solr_url, collection_name, search_input, search_field,
@@ -781,9 +886,20 @@ def main():
 
     # Generates suggestions to words while entering a search query
     #search_input = input("\nSearch input: \n")
+    #search_input = "шок"
+    #search_field = "ingredients.name"
     #search_field = "name"
     #generate_search_suggestions(solr_url, collection_name, search_input,
     #                            search_field)
+
+    # Generates recipes similar to a given one
+    #search_input = "Пилешки бутчета с уиски и картофено пюре"
+    #category = "основно"
+    #search_input = "ябълкови сандвичи"
+    #category = "десерт"
+    #results_count = 5
+    #more_like_this_recipe(solr_url, collection_name, search_input,
+    #                      category)
 
     """
     # Uses Solr to search into its index
