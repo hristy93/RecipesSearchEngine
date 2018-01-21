@@ -1,6 +1,8 @@
-from django.shortcuts import render
+# -*- coding: utf-8 -*-
 from django.http import JsonResponse
-from RecipesSearchEngine.RecipesSearchEngine import generate_search_suggestions, complex_search
+from RecipesSearchEngine.RecipesSearchEngine import (
+    generate_search_suggestions, complex_search)
+
 
 SOLR_URL = "http://localhost:8983/solr"
 JSON_FILENAME = "scrapy_crawler/scrapy_crawler/recipes.json"
@@ -10,6 +12,8 @@ COLLECTION = "recipes_search_engine"
 
 def get_recipes_by_keyword(request, *args, **kwargs):
     # TODO: escape * and other symbols
+    if not request.GET:
+        return JsonResponse({"recipes": []})
     keyword = request.GET.get("keyword")
     search_field = request.GET.get("field", "name")
     recipes = generate_search_suggestions(
@@ -19,18 +23,19 @@ def get_recipes_by_keyword(request, *args, **kwargs):
 
 def get_complex_search_results(request, *args, **kwargs):
     # TODO: escape * and other symbols
+    if not request.GET:
+        return JsonResponse({"recipes": []})
     keyword = request.GET.get("keyword")
-    search_field = request.GET.get("field", "name")
-    categories = request.GET.getlist("categories", None)
-    duration_range = request.GET.getlist("duration_range", (0, 100))
+    search_field = request.GET.get("field", "ingredients.name")
+    categories = request.GET.getlist("categories", ["осн"])
+    duration_range = request.GET.getlist("duration", (0, 100))
     keys = ["category", "user_str", "duration"]
     facet_input = {
         "category": categories,
-        "user_str": keyword,
+        "user_str": None,
         "duration": duration_range
     }
     facet_fields = request.GET.getlist("fields", keys)
-    facet_input = {}
     recipes = complex_search(
         SOLR_URL, COLLECTION, keyword, search_field,
         facet_fields, facet_input, duration_range

@@ -24,8 +24,6 @@ from sklearn.metrics import accuracy_score
 # from scipy.spatial.distance import cdist
 # from scipy.spatial.distance import pdist
 # import matplotlib.pyplot as plt
-from .bulgarian_stemmer.bulgarian_stemmer import BulgarianStemmer
-from .bulgarian_stemmer.bulstem import *
 
 from bs4 import BeautifulSoup
 from SolrClient import SolrClient
@@ -466,7 +464,7 @@ def complex_search(solr_url, collection_name, search_input, search_field,
 
     # Gets the categories facets input
     categories_facet_input_query = ""
-    if "category" in facet_input.keys():
+    if "category" in facet_input.keys() and facet_input["category"]:
         categories_facet_input_query = "{!tag=CATEGORY}"
         categories_facet_input_query += "category:"
         categories_input = facet_input["category"]
@@ -475,7 +473,7 @@ def complex_search(solr_url, collection_name, search_input, search_field,
 
     # Gets the users facets input
     users_facet_input_query = ""
-    if "user_str" in facet_input.keys():
+    if "user_str" in facet_input.keys() and facet_input["user_str"]:
         users_facet_input_query = "{!tag=USER}"
         users_facet_input_query += "user:"
         users_input = facet_input["user_str"]
@@ -484,7 +482,7 @@ def complex_search(solr_url, collection_name, search_input, search_field,
 
     # Gets the duration facets input
     duration_facet_input_query = ""
-    if "duration" in facet_input.keys():
+    if "duration" in facet_input.keys() and facet_input["duration"]:
         duration_facet_input_query = "{!tag=DURATION}"
         duration_facet_input_query += "duration:"
         duration_input = facet_input["duration"]
@@ -496,17 +494,17 @@ def complex_search(solr_url, collection_name, search_input, search_field,
     query_body['fq'] = facets_input_query
             
     # Gets the facets data
-    if "category" in facet_fields:
+    if "category" in facet_fields and facet_input["category"]:
         categories_facet_results = solr_facet_search_recipe_category_by_field(
                                    solr_url, collection_name, search_input,
                                    facets_input_query, search_field)
 
-    if "user_str" in facet_fields:
+    if "user_str" in facet_fields and facet_input["user_str"]:
         users_facet_result = solr_facet_search_recipe_user_by_field(
                              solr_url, collection_name, search_input,
                              facets_input_query, search_field)
 
-    if "duration" in facet_fields:
+    if "duration" in facet_fields and facet_input["duration"]:
         duration_facet_result = solr_facet_search_recipe_duration_by_field(
                                 solr_url, collection_name, search_input,
                                 facets_input_query, duration_range,
@@ -979,7 +977,13 @@ def call_recipes():
 
 
 if __name__ == "__main__":
+    from bulgarian_stemmer.bulgarian_stemmer import BulgarianStemmer
+    from bulgarian_stemmer.bulstem import *
+
     # enables the unicode console encoding on Windows
     if sys.platform == "win32":
         enable_win_unicode_console()
     main()
+else:
+    from .bulgarian_stemmer.bulgarian_stemmer import BulgarianStemmer
+    from .bulgarian_stemmer.bulstem import *
