@@ -2,6 +2,7 @@
 from django.http import JsonResponse
 from RecipesSearchEngine.RecipesSearchEngine import (
     generate_search_suggestions, complex_search)
+from .utils import serialize_recipe
 
 
 SOLR_URL = "http://localhost:8983/solr"
@@ -36,8 +37,13 @@ def get_complex_search_results(request, *args, **kwargs):
         "duration": duration_range
     }
     facet_fields = request.GET.getlist("fields", keys)
-    recipes = complex_search(
+    recipes, suggested_search_query_words, suggested_search_queries = complex_search(
         SOLR_URL, COLLECTION, keyword, search_field,
         facet_fields, facet_input, duration_range
     )
-    return JsonResponse({"recipes": recipes})
+    return JsonResponse({
+        "recipes": [serialize_recipe(r) for r in recipes],
+        # "recipes": recipes,
+        "suggested_words": suggested_search_query_words,
+        "suggested_queries": suggested_search_queries
+    })

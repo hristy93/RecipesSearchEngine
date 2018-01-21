@@ -528,6 +528,7 @@ def complex_search(solr_url, collection_name, search_input, search_field,
     results_count = len(result.docs)
     spellcheck_data = result.data["spellcheck"]
 
+    suggested_search_query_words, suggested_search_queries = [], []
     if not spellcheck_data["correctlySpelled"]:
         suggested_search_query_words, suggested_search_queries =\
            get_spellchecker_suggestions(solr_url,
@@ -535,7 +536,7 @@ def complex_search(solr_url, collection_name, search_input, search_field,
                                         search_input,
                                         search_field,
                                         spellcheck_data)
-        return suggested_search_query_words, suggested_search_queries
+        # return suggested_search_query_words, suggested_search_queries
 
         #if not suggested_search_query_words and not suggested_search_queries:
         #    spitted_search_input = search_input.split(" ")
@@ -563,7 +564,7 @@ def complex_search(solr_url, collection_name, search_input, search_field,
         #                                                       search_field,
         #                                                       spellcheck_data)
 
-    return result.docs
+    return result.docs, suggested_search_query_words, suggested_search_queries
 
 
 def delete_all_documents_in_solr(solr_url, collection_name):
