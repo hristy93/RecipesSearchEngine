@@ -52,7 +52,8 @@ def read_json(json_file_name):
     return data
 
 
-def preprocess_ingredients(data, igredients_stop_words, write_back_ingredients):
+def preprocess_ingredients(data, common_ingredients, processing_ingredients, 
+                           write_back_ingredients):
     """ Prepocesses the ingredients from the json data """
     print("Preprocessing the recipes' ingredients ...")
 
@@ -60,16 +61,16 @@ def preprocess_ingredients(data, igredients_stop_words, write_back_ingredients):
     stemmed_ingredients = set()
     common_ingredients_count = 0
     ingredients_count = 0
+    unwanted_words_count = 0
 
     for item in data:
         for ingredient in item['ingredients']:
             if ingredient['name'] != '':
-                ingredients.add(ingredient['name'])
                 ingredients_count += 1
                 
                 # Marks the ingredients from the stop words list as common
-                if ingredient['name'] in igredients_stop_words or \
-                    any([item for item in igredients_stop_words if item in ingredient['name']]):
+                if ingredient['name'] in common_ingredients or \
+                    any([item for item in common_ingredients if item in ingredient['name']]):
                    
                     #print("  Marked {0} as common ingredient"
                     #      .format(ingredient['name']))
@@ -81,7 +82,22 @@ def preprocess_ingredients(data, igredients_stop_words, write_back_ingredients):
                     
                 # Gets the stemmed ingredients
                 stemmed_ingredient = stemm_ingredient(ingredient['name'])
+
+                # Removes the unwanted words from the ingredients
+                #print("  Removing unwanted words ...")
+                #for unwanted_word in processing_ingredients:
+                #    unwanted_word = stemm_ingredient(unwanted_word)
+                #    if unwanted_word in stemmed_ingredient:
+                #        unwanted_words_count += 1
+                #        temp_ingredient = stemmed_ingredient
+                #        re.sub(unwanted_word, "", stemmed_ingredient)
+                        #print("Removed {0} from {1}".format(unwanted_word, 
+                        #                                    temp_ingredient))
+
+                # Adds the ingredients to the corresponding lists
+                stemmed_ingredient = stemmed_ingredient.lstrip().rstrip()
                 stemmed_ingredients.add(stemmed_ingredient)
+                ingredients.add(ingredient['name'])
 
                 # Writes back the stemmed ingredient into the data
                 if write_back_ingredients:
@@ -92,6 +108,7 @@ def preprocess_ingredients(data, igredients_stop_words, write_back_ingredients):
     print("  Found {0} common ingredients from {1}".format(common_ingredients_count, ingredients_count))
     print("  Found {0} unique ingredients from {1}".format(len(ingredients), ingredients_count))
     print("  Stemmed {0} ingedients from {1} unique ones".format(len(stemmed_ingredients), len(ingredients)))
+    #print("  Removed {0} unwanted words from the ingredients".format(unwanted_words_count))
     return ingredients, stemmed_ingredients, common_ingredients_count
 
 
@@ -109,7 +126,7 @@ def stemm_ingredient(ingredient):
         stemmed_ingredient = stem(ingredient)
         # print(ingredient, " ", stemmed_ingredient)
 
-    return stemmed_ingredient
+    return stemmed_ingredient.lstrip().rstrip()
     # stemmer.print_word(item)
 
 
@@ -136,7 +153,7 @@ def stemm_ingredients(ingredients):
     # stemmer.print_word(item)
 
 
-def get_stemmed_categories(data, write_back_categories):
+def preprocess_categories(data, write_back_categories):
     """Stemms category for each recipe."""
     print("\nPreprocessing the recipes' categories ...")
 
@@ -148,6 +165,7 @@ def get_stemmed_categories(data, write_back_categories):
         "супи": "суп",
         "супа": "суп"
     }
+
     for category, stemmed_category in similar_categories.items():
         categories.add(category)
         stemmed_categories.add(stemmed_category)
@@ -196,6 +214,7 @@ def preprocess_recipe_categories(recipe, categories, stemmed_categories, similar
 
     if recipe["category"] not in similar_categories.keys():
         stemmed_categories.add(stemm_category)
+
     return categories, stemmed_categories
 
 
@@ -374,15 +393,17 @@ def solr_facet_search_recipe_duration_by_field(solr_url, collection_name,
     return facet_ranges
 
 
-def preprocess_data(data, igredients_stop_words, write_back_ingredients,
-                    write_back_categories):
+def preprocess_data(data, common_ingredients, processing_ingredients,
+                    write_back_ingredients, write_back_categories):
     """ Preprocesses the data from the JSON file """
     # Preprocesses the ingredients
     ingredients, stemmed_ingredients, common_ingredients_count =\
-       preprocess_ingredients(data, igredients_stop_words, write_back_ingredients)
+       preprocess_ingredients(data, common_ingredients, processing_ingredients, 
+                              write_back_ingredients)
 
     # Preprocesses the categories
-    categories, stemmed_categories = get_stemmed_categories(data, write_back_categories)
+    categories, stemmed_categories = preprocess_categories(data, write_back_categories)
+                                                    
         
     return (ingredients, stemmed_ingredients, categories,
             stemmed_categories, common_ingredients_count)
@@ -802,17 +823,28 @@ def main():
     # ingredients = set()
     stemmed_ingredients = set()
     # ingredients = list(ingredients)
-    igredients_stop_words = ['сол', 'пипер', 'олио', 'лук', 'вода',
+    common_ingredients = ['сол', 'пипер', 'олио', 'лук', 'вода',
                              'захар', 'магданоз', 'босилек', 'подправк',
                             'кориандър', 'джодж', 'чубри', 'кими', 'дафинов',
                             'розмарин', 'мащерка', 'копър', 'зехтин']
+    processing_ingredients = ['накълцан', 'смачкан', 'изсушен', 'наряз', 'смлени',
+                             'смлян', 'сварен', 'обелен', 'узрял', 'печени', 'смлян'
+                            'узрел', 'филиран', 'консерва', 'пушен', 'маринован'
+                             'пакет', 'концентриран', 'на прах', 'натрошен', 'сух', 'суха',
+                            'трохи', "зрял", "намачкан", 'ронлив', 'сушени', 'сушен',
+                            'нискомаслен', "с черупки", 'прeсен', 'пряс', 'замразен',
+                           'горно', 'долно', 'настърган', 'замразен', 'маринован',
+                           'големи', 'голям', 'малк', 'малък', 'белен', 'сурови',
+                           'стерилизиран', 'млад', 'замразен', 'белени', 'разтопен',
+                           'пречистeн']
 
     # Preprocesses the data from the json file
     write_back_ingredients = False
     write_back_categories = True
     (ingredients, stemmed_ingredients, categories,
         stemmed_categories, common_ingredients_count) =\
-       preprocess_data(data, igredients_stop_words, 
+       preprocess_data(data, common_ingredients,
+                       processing_ingredients,
                        write_back_ingredients, 
                        write_back_categories)
     ingredients_count = len(ingredients)
@@ -951,7 +983,7 @@ def main():
     #        if ' ' in ingredient_name:
     #            ingredient_name = '_'.join(ingredient_name.split(' '))
     #        ingredients_inner_data.append(ingredient_name)
-    #    meaningful_ingedients = [w for w in ingredients_inner_data if not w in igredients_stop_words]
+    #    meaningful_ingedients = [w for w in ingredients_inner_data if not w in common_ingredients]
     #    ingredients_inner_data = " ".join(ingredients_inner_data)
     #    tfidf_raw_data.append(ingredients_inner_data)
 
@@ -961,7 +993,7 @@ def main():
     #                             sublinear_tf = True,
     #                             binary = True,
     #                             use_idf = True,
-    #                             stop_words = igredients_stop_words)
+    #                             stop_words = common_ingredients)
     # result = vectorizer.fit_transform(tfidf_raw_data)
 
     # print('vocabulary', vectorizer.vocabulary_)
