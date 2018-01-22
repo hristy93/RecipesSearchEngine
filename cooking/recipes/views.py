@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 from django.http import JsonResponse
+from django.shortcuts import render
 from RecipesSearchEngine.RecipesSearchEngine import (
     generate_search_suggestions, complex_search)
 from .utils import serialize_recipe
+from .models import Recipe
 
 
 SOLR_URL = "http://localhost:8983/solr"
@@ -46,4 +48,11 @@ def get_complex_search_results(request, *args, **kwargs):
         # "recipes": recipes,
         "suggested_words": suggested_search_query_words,
         "suggested_queries": suggested_search_queries
+    })
+
+
+def home(request, *args, **kwargs):
+    recipes = Recipe.objects.all()
+    return render(request, "index.html", {
+        "recipes": [serialize_recipe(r) for r in recipes]
     })
