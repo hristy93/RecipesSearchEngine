@@ -9,7 +9,7 @@ def serialize_recipe(recipe):
             "name": recipe["name"],
             "image_url": recipe["image_url"],
             "ingredients": recipe["ingredients.unstructured_data"],
-            "instructions": recipe["instructions"],
+            "instructions": recipe["instructions"].split('\n'),
             "duration": recipe["duration"][0],
             "categories": recipe["category_str"],
             "servings": recipe["servings"][0],
@@ -20,7 +20,7 @@ def serialize_recipe(recipe):
         "name": recipe.name,
         "image_url": recipe.image_url,
         "ingredients": [i.unstructured_data for i in recipe.ingredients.all()],
-        "instructions": recipe.instructions,
+        "instructions": recipe.instructions.split('\n'),
         "duration": recipe.duration,
         "categories": [recipe.category],
         "servings": recipe.servings,
@@ -52,7 +52,9 @@ def fill_in_db_from_json(filename):
                     r.ingredients.add(Ingredient.objects.create(**i))
                 except Exception as e:
                     print(e)
+                    print(rec)
                     continue
         except Exception as i:
             print(i)
+            print(rec)
             continue

@@ -258,7 +258,7 @@ def solr_single_term_search_by_field(solr_url, collection_name,
     #for docs in result.docs:
     #    print(docs['name'])
 
-    return result.docs
+    return [doc["name"] for doc in result.docs]
 
 
 def solr_phrase_search_by_field(solr_url, collection_name,
@@ -784,6 +784,23 @@ def more_like_this_recipe(solr_url, collection_name, search_input,
 
     return result.docs[:results_count]
 
+
+def solr_search_recipes_by_category(solr_url, collection_name, search_input,
+                               field="category", search_field="name"):
+    """Uses Solr to search recipes by a given category"""
+    print("\nFinding the recipes for category", search_input)
+    solr = SolrClient(solr_url)
+    stem_value = stem(search_input)
+    query = "{0}_str:*{1}*".format(field, stem_value)
+    result = solr.query(collection_name, {
+        'q': query,
+        'fl': search_field
+    })
+
+    print("  Found top {0} results:".format(len(result.docs)))
+    return [r["name"] for r in result.docs]
+
+
 def main():
     # Defines some variables and constants
     # json_file_name = "recipes_500_refined_edited.json"
@@ -847,6 +864,10 @@ def main():
     # Processes the whole initial data from the json and gets the necessary data
     # process_data(data, ingredients, ingredient_data, ingredients_count_info)
     # print(ingredient_data[0])
+
+    # Search recipes by category
+    # res = solr_search_recipes_by_category(solr_url, collection_name, "салата")
+    # print(res)
 
     # Complex query inputs for the complex search
     facet_input = dict()

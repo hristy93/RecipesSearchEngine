@@ -2,7 +2,8 @@
 from django.http import JsonResponse
 from django.shortcuts import render
 from RecipesSearchEngine.RecipesSearchEngine import (
-    generate_search_suggestions, complex_search)
+    generate_search_suggestions, complex_search, solr_search_recipes_by_category,
+    solr_single_term_search_by_field, solr_facet_search_recipe_category_by_field)
 from .utils import serialize_recipe
 from .models import Recipe
 
@@ -20,6 +21,21 @@ def get_recipes_by_keyword(request, *args, **kwargs):
     keyword = request.GET.get("keyword")
     search_field = request.GET.get("field", "name")
     found, titles = generate_search_suggestions(
+        SOLR_URL, COLLECTION, keyword, search_field)
+    recipes = Recipe.objects.filter(name__in=titles)
+    recipes = [serialize_recipe(r) for r in recipes]
+    return JsonResponse({
+        "recipes": recipes,
+    })
+
+
+def search_recipes_by_keyword(request, *args, **kwargs):
+    # TODO: escape * and other symbols
+    if not request.GET:
+        return JsonResponse({"recipes": []})
+    keyword = request.GET.get("keyword")
+    search_field = request.GET.get("field", "name")
+    found, titles = solr_single_term_search_by_field(
         SOLR_URL, COLLECTION, keyword, search_field)
     recipes = Recipe.objects.filter(name__in=titles)
     return JsonResponse({"recipes": [serialize_recipe(r) for r in recipes]})
@@ -52,8 +68,22 @@ def get_complex_search_results(request, *args, **kwargs):
     })
 
 
+def search_recipes_by_category(request, *args, **kwargs):
+    # TODO: escape * and other symbols
+    if not request.GET:
+        return JsonResponse({"recipes": []})
+    keyword = request.GET.get("category")
+    titles = solr_search_recipes_by_category(
+        SOLR_URL, COLLECTION, keyword)
+    recipes = Recipe.objects.filter(name__in=titles)[:100]
+    return JsonResponse({"recipes": [serialize_recipe(r) for r in recipes]})
+
+
 def home(request, *args, **kwargs):
-    recipes = Recipe.objects.all()
+    recipes = [serialize_recipe(r) for r in Recipe.objects.all()[:100]]
+    categories = solr_facet_search_recipe_category_by_field(
+        SOLR_URL, COLLECTION, "", [])
     return render(request, "index.html", {
-        "recipes": [serialize_recipe(r) for r in recipes]
+        "recipes": recipes,
+        "categories": list(categories['category_str'].keys())
     })

@@ -69,10 +69,8 @@
         <div class="col-lg-3">
 
           <h1 class="my-4">Shop Name</h1>
-          <div class="list-group">
-            <a href="#" class="list-group-item">Category 1</a>
-            <a href="#" class="list-group-item">Category 2</a>
-            <a href="#" class="list-group-item">Category 3</a>
+          <div class="list-group" v-for="category in categories">
+            <button @click="searchByCategory( category, $event )" class="list-group-item">[category]</button>
           </div>
 
         </div>
@@ -128,23 +126,6 @@
               </div>
             </div>
 
-            <div class="col-lg-4 col-md-6 mb-4">
-              <div class="card h-100">
-                <a href="#"><img class="card-img-top" src="http://placehold.it/700x400" alt=""></a>
-                <div class="card-body">
-                  <h4 class="card-title">
-                    <a href="#">Item Six</a>
-                  </h4>
-                  <h5>$24.99</h5>
-                  <p class="card-text">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Amet numquam aspernatur!</p>
-                </div>
-                <div class="card-footer">
-                  <small class="text-muted">&#9733; &#9733; &#9733; &#9733; &#9734;</small>
-                </div>
-              </div>
-            </div>
-      
-
 
 
               <div v-for="recipe in recipes">
@@ -153,8 +134,8 @@
                   <div class="popup">
                     <h2>[ recipe.name ]</h2>
                     <a class="close" :href="'#r' + recipe.id">&times;</a>
-                    <div class="content">
-                      [ recipe.instructions ]
+                    <div class="content" v-for="intr in recipe.instructions">
+                        <p v-html="intr"></p>
                     </div>
                   </div>
                 </div>
@@ -176,13 +157,6 @@
     <!-- /.container -->
 
 
-
-
-
-
-
-
-
     <!-- Footer -->
     <footer class="py-5 bg-dark">
       <div class="container">
@@ -197,15 +171,13 @@
     <script src="https://unpkg.com/vue@2.5.13/dist/vue.js"></script>
 
     <script>
-      var recipes = {{ recipes|safe }},
-          url = "{% url 'base-search' %}";
-
       var app = new Vue({
         delimiters: ["[", "]"],
         el: "#recipes",
         data: {
             suggested_words: {"\u043f\u0438\u043b\u0435": ["\u043f\u043e\u043b\u0435", "\u043f\u0438\u043b", "\u043f\u0438\u043f\u0435\u0440", "\u043f\u043e\u043b\u0435\u0439", "\u043f\u0438\u043b\u0435\u0448\u043a", "\u043f\u044a\u043b\u043d", "\u043f\u043b\u0438\u043a", "\u043f\u0438\u043b\u0430\u0444", "\u043f\u0438\u043d\u0433", "\u043f\u0438\u0442\u043a"]},
-            recipes: recipes,
+            recipes: {{ recipes|safe }},
+            categories: {{ categories|safe }},
             keyword: "",
             results: []
         },
@@ -215,13 +187,32 @@
 
                 // send get request
                 $.get({
-                    url: url,
+                    url: "{% url 'base-search' %}",
                     type: "GET",
                     data: {keyword: this.keyword}
                 })
                   .then(function (response) {
                     console.log(response);
                     app.results = response.recipes;
+
+                    })
+                  .fail(function (error) {
+                    // handle error
+                    console.error(error);
+                });
+            },
+            searchByCategory: function(category, event) {
+                event.preventDefault();
+
+                // send get request
+                $.get({
+                    url: "{% url 'category-search' %}",
+                    type: "GET",
+                    data: {category: category}
+                })
+                  .then(function (response) {
+                    console.log(response);
+                    app.recipes = response.recipes;
 
                     })
                   .fail(function (error) {
