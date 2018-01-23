@@ -35,7 +35,7 @@ def search_recipes_by_keyword(request, *args, **kwargs):
         return JsonResponse({"recipes": []})
     keyword = request.GET.get("keyword")
     search_field = request.GET.get("field", "name")
-    found, titles = solr_single_term_search_by_field(
+    titles = solr_single_term_search_by_field(
         SOLR_URL, COLLECTION, keyword, search_field)
     recipes = Recipe.objects.filter(name__in=titles)
     return JsonResponse({"recipes": [serialize_recipe(r) for r in recipes]})

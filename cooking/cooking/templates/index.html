@@ -9,7 +9,7 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>Shop Homepage - Start Bootstrap Template</title>
+    <title>Търси рецепти</title>
 
     <!-- Bootstrap core CSS -->
     <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
@@ -24,30 +24,27 @@
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
       <div class="container">
-        <a class="navbar-brand" href="#">Start Bootstrap</a>
+        <a class="navbar-brand" href="{% url 'home' %}">Рецепти</a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
           <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarResponsive">
           <ul class="navbar-nav ml-auto">
             <li class="nav-item active">
-              <a class="nav-link" href="#">Home
+              <a class="nav-link" href="{% url 'home' %}">Начало
                 <span class="sr-only">(current)</span>
               </a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="#">About</a>
+              <a class="nav-link" href="#">За нас</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="#">Services</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="#">Contact</a>
+              <a class="nav-link" href="#">Разширено търсене</a>
             </li>
             <li class="nav-item">
               <form @submit="search" class="form-inline my-2 my-lg-0 mr-lg-2">
                 <div class="input-group">
-                  <input v-model="keyword" class="form-control" type="text" placeholder="Search for...">
+                  <input v-model="keyword" class="form-control" type="text" placeholder="Потърси за...">
                   <span class="input-group-append">
                     <button class="btn btn-primary" type="button" id="base-search" @click="search">
                       <i class="fa fa-search"></i>
@@ -68,7 +65,7 @@
 
         <div class="col-lg-3">
 
-          <h1 class="my-4">Shop Name</h1>
+          <h1 class="my-4">Категории</h1>
           <div class="list-group" v-for="category in categories">
             <button @click="searchByCategory( category, $event )" class="list-group-item">[category]</button>
           </div>
@@ -192,8 +189,7 @@
                     data: {keyword: this.keyword}
                 })
                   .then(function (response) {
-                    console.log(response);
-                    app.results = response.recipes;
+                    app.recipes = response.recipes;
 
                     })
                   .fail(function (error) {

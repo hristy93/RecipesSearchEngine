@@ -21,9 +21,8 @@ from .views import (
 
 urlpatterns = [
     path('home/', home, name='home'),
-    path('base-search/', get_recipes_by_keyword, name='base-search'),
-    path('search/', get_recipes_by_keyword, name='search'),
-    path('search1/', search_recipes_by_keyword, name='search'),
+    path('search-suggestor/', get_recipes_by_keyword, name='search-suggestor'),
+    path('base-search/', search_recipes_by_keyword, name='base-search'),
     path('category-search/', search_recipes_by_category, name='category-search'),
     path('complex-search/', get_complex_search_results, name='complex-search'),
 ]
