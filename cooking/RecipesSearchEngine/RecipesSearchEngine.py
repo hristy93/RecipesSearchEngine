@@ -759,7 +759,7 @@ def generate_search_suggestions(solr_url, collection_name, search_input,
     for item in fuzzy_suggester_results:
         print("    {}".format(item))
 
-    return suggesters_results
+    return suggesters_results, [item["term"] for item in fuzzy_suggester["suggestions"]]
 
 
 def more_like_this_recipe(solr_url, collection_name, search_input,

@@ -42,7 +42,17 @@ def read_json(json_file_name):
 def fill_in_db_from_json(filename):
     data = read_json(filename)
     for rec in data:
-        e = rec.pop('ingredients', [])
-        r = Recipe.objects.create(**rec)
-        for i in e:
-            r.ingredients.add(Ingredient.objects.create(**i))
+        try:
+            e = rec.pop('ingredients', [])
+            rec.pop('duration_bound', None)
+            r = Recipe.objects.create(**rec)
+            for i in e:
+                try:
+                    i.pop('common', None)
+                    r.ingredients.add(Ingredient.objects.create(**i))
+                except Exception as e:
+                    print(e)
+                    continue
+        except Exception as i:
+            print(i)
+            continue

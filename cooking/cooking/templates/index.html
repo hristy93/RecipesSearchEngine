@@ -20,7 +20,7 @@
   </head>
 
   <body>
-
+    <div id="recipes">
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
       <div class="container">
@@ -45,11 +45,11 @@
               <a class="nav-link" href="#">Contact</a>
             </li>
             <li class="nav-item">
-              <form class="form-inline my-2 my-lg-0 mr-lg-2">
+              <form @submit="search" class="form-inline my-2 my-lg-0 mr-lg-2">
                 <div class="input-group">
-                  <input class="form-control" type="text" placeholder="Search for...">
+                  <input v-model="keyword" class="form-control" type="text" placeholder="Search for...">
                   <span class="input-group-append">
-                    <button class="btn btn-primary" type="button">
+                    <button class="btn btn-primary" type="button" id="base-search" @click="search">
                       <i class="fa fa-search"></i>
                     </button>
                   </span>
@@ -107,7 +107,7 @@
             </a>
           </div>
  -->
-          <div class="row my-4" id="recipes">
+          <div class="row my-4" id="recipes-holder">
 
             <div class="col-lg-4 col-md-6 mb-4" v-for="recipe in recipes">
               <div class="card h-100">
@@ -160,8 +160,9 @@
                 </div>
               </div>
 
-
-
+              <div v-for="res in results">
+                <p v-html="res"></p>
+              </div>
           </div>
           <!-- /.row -->
 
@@ -189,19 +190,46 @@
       </div>
       <!-- /.container -->
     </footer>
-
+    </div>
     <!-- Bootstrap core JavaScript -->
     <script src="{% static 'vendor/jquery/jquery.min.js' %}"></script>
     <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
     <script src="https://unpkg.com/vue@2.5.13/dist/vue.js"></script>
 
     <script>
-      var recipes = {{ recipes|safe }};
+      var recipes = {{ recipes|safe }},
+          url = "{% url 'base-search' %}";
 
       var app = new Vue({
         delimiters: ["[", "]"],
         el: "#recipes",
-        data: {"suggested_words": {"\u043f\u0438\u043b\u0435": ["\u043f\u043e\u043b\u0435", "\u043f\u0438\u043b", "\u043f\u0438\u043f\u0435\u0440", "\u043f\u043e\u043b\u0435\u0439", "\u043f\u0438\u043b\u0435\u0448\u043a", "\u043f\u044a\u043b\u043d", "\u043f\u043b\u0438\u043a", "\u043f\u0438\u043b\u0430\u0444", "\u043f\u0438\u043d\u0433", "\u043f\u0438\u0442\u043a"]}, "recipes": recipes}
+        data: {
+            suggested_words: {"\u043f\u0438\u043b\u0435": ["\u043f\u043e\u043b\u0435", "\u043f\u0438\u043b", "\u043f\u0438\u043f\u0435\u0440", "\u043f\u043e\u043b\u0435\u0439", "\u043f\u0438\u043b\u0435\u0448\u043a", "\u043f\u044a\u043b\u043d", "\u043f\u043b\u0438\u043a", "\u043f\u0438\u043b\u0430\u0444", "\u043f\u0438\u043d\u0433", "\u043f\u0438\u0442\u043a"]},
+            recipes: recipes,
+            keyword: "",
+            results: []
+        },
+        methods: {
+            search: function(event) {
+                event.preventDefault();
+
+                // send get request
+                $.get({
+                    url: url,
+                    type: "GET",
+                    data: {keyword: this.keyword}
+                })
+                  .then(function (response) {
+                    console.log(response);
+                    app.results = response.recipes;
+
+                    })
+                  .fail(function (error) {
+                    // handle error
+                    console.error(error);
+                });
+            }
+        }
       });
     </script>
 

@@ -19,9 +19,10 @@ def get_recipes_by_keyword(request, *args, **kwargs):
         return JsonResponse({"recipes": []})
     keyword = request.GET.get("keyword")
     search_field = request.GET.get("field", "name")
-    recipes = generate_search_suggestions(
+    found, titles = generate_search_suggestions(
         SOLR_URL, COLLECTION, keyword, search_field)
-    return JsonResponse({"recipes": recipes})
+    recipes = Recipe.objects.filter(name__in=titles)
+    return JsonResponse({"recipes": [serialize_recipe(r) for r in recipes]})
 
 
 def get_complex_search_results(request, *args, **kwargs):
