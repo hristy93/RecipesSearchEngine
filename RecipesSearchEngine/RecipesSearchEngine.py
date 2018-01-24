@@ -1,32 +1,31 @@
 # -*- coding: utf-8 -*-
 import json
 import sys
-import math
-import difflib
-import time
-import nltk
+#import math
+#import difflib
+#import time
+#import nltk
 import re
-from heapq import nlargest
-from bs4 import BeautifulSoup
-import pandas as pd
-import numpy as np
-from itertools import compress
-from sklearn.cluster import KMeans
-from sklearn.neighbors import NearestNeighbors
-from sklearn.naive_bayes import GaussianNB
-from sklearn.feature_extraction.text import TfidfTransformer
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.model_selection import KFold
-from sklearn.model_selection import train_test_split
-from sklearn.model_selection import cross_val_score
-from sklearn.metrics import classification_report
-from sklearn.metrics import accuracy_score
+#from heapq import nlargest
+#from bs4 import BeautifulSoup
+#import pandas as pd
+#import numpy as np
+#from itertools import compress
+#from sklearn.cluster import KMeans
+#from sklearn.neighbors import NearestNeighbors
+#from sklearn.naive_bayes import GaussianNB
+#from sklearn.feature_extraction.text import TfidfTransformer
+#from sklearn.feature_extraction.text import TfidfVectorizer
+#from sklearn.model_selection import KFold
+#from sklearn.model_selection import train_test_split
+#from sklearn.model_selection import cross_val_score
+#from sklearn.metrics import classification_report
+#from sklearn.metrics import accuracy_score
 # from scipy.spatial.distance import cdist
 # from scipy.spatial.distance import pdist
 # import matplotlib.pyplot as plt
-from bulgarian_stemmer.bulgarian_stemmer import BulgarianStemmer
+#from bulgarian_stemmer.bulgarian_stemmer import BulgarianStemmer
 from bulgarian_stemmer.bulstem import *
-from bs4 import BeautifulSoup
 from SolrClient import SolrClient
 from transliterate import translit, get_available_language_codes
 
@@ -428,19 +427,25 @@ def preprocess_search_input(search_input, search_field):
     #   test1 = translit(search_input, 'bg')
 
     # Checks if the search input is incorrect
-    is_search_input_incorrect = re.search(r'[^а-яА-Я ]+', search_input)
+    is_search_input_incorrect = re.search(r'[^а-яА-Я, ]+', search_input)
     if is_search_input_incorrect:
         return None
 
 
     # Preprocesses the serach input if the search is it is a boolean query
     # with AND - 'и' and/or OR - 'или'
-    if ' и ' in search_input or ' или ' in search_input:
+    if search_field == 'ingedeients.name' and ' и ' in search_input or ' или ' in search_input or\
+        ',' in search_input:
        search_input = search_input.lower()
+       search_input = re.sub('\s*,\s*', ' AND ', search_input)
+       earch_input = re.sub(' или ', ' OR ', search_input)
+       search_input = re.sub(' и ', ' AND ', search_input)
        search_input_splitted = search_input.split(' ')
        search_input = " ".join(["*{}*".format(stem(item)) for item in search_input_splitted])
-       search_input = re.sub(' \*или\* ', ' OR ', search_input)
-       search_input = re.sub(' \*и\* ', ' AND ', search_input)
+       #search_input = re.sub(' \*или\* ', ' OR ', search_input)
+       #search_input = re.sub(' \*и\* ', ' AND ', search_input)
+       search_input = re.sub(' \*AND\* ', ' AND ', search_input)
+       search_input = re.sub(' \*OR\* ', ' OR ', search_input)
        #replacer = re.compile(r'(\w+)')
        #search_input = replacer.sub(r'*\1*', search_input)
 
@@ -458,7 +463,8 @@ def get_incorrect_input_suggestion(search_input):
 
 
 def complex_search(solr_url, collection_name, search_input, search_field,
-                   facet_fields, facet_input, duration_range = ()):
+                   facet_fields, facet_input, duration_range = (0, 500),
+                   use_pharase = False, recipe_name_boost_factor = 5):
     """Uses Solr to do a complex search with all types of seaches 
     and facets
     """
@@ -476,7 +482,14 @@ def complex_search(solr_url, collection_name, search_input, search_field,
     else:
         search_input = preprocessed_search_input
 
-    query = "{0}:*{1}*".format(search_field, search_input)
+    query = "{0}:*{1}* or {0}:\"{1}\"".format(search_field, search_input)
+    #query = "{0}:*{1}*^{2} or {0}:\"{1}\"^{2}".format(search_field, search_input,
+    #                                               recipe_name_boost_factor)
+
+    #if not use_pharase:
+    #    query = "{0}:*{1}*".format(search_field, search_input)
+    #else:
+    #    query = "{0}:\"{1}\"".format(search_field, search_input)
     query_body = dict()
     query_body['q'] = query
 
@@ -550,7 +563,8 @@ def complex_search(solr_url, collection_name, search_input, search_field,
     results_count = len(result.docs)
     spellcheck_data = result.data["spellcheck"]
 
-    if not spellcheck_data["correctlySpelled"]:
+    if len(spellcheck_data["suggestions"]) != 0 and\
+        len(spellcheck_data["collations"]) != 0:
         suggested_search_query_words, suggested_search_queries =\
            get_spellchecker_suggestions(solr_url,
                                         collection_name,
@@ -884,20 +898,21 @@ def main():
     facet_input = dict()
     facet_fields = ["category", "user_str", "duration"]
     #facet_input["category"] = ["основ", "сал"]
-    #duration_range = (20, 40)
-    facet_input["duration"] = duration_range
-    facet_input["user_str"] = ["Гомеш"]
-    facet_input["category"] = ["дес", "осн"]
-    search_input = "сла"
-    search_field = "ingredients.name"
+    #duration_range = (0, 80)
+    #facet_input["duration"] = duration_range
+    #facet_input["user_str"] = ["Мария"]
+    #facet_input["category"] = ["десерт", "основно"]
+    #search_input = "сладолед"
+    #search_field = "name"
 
     # Multiple query inputs for the complex search
-    duration_range = (0, 100)
+    #duration_range = (0, 100)
     #search_input = "картофи или пиле"
     #search_input = "kartofi ili pile"
     #search_input = "картофи или пиле"
     #search_input = "Пай с пуйка и шунка"
-    #search_field = "name"
+    #search_input = "картофи , пиле и чушки"
+    #search_field = "ingredients.name"
 
     # Query inputs for the spellchecker
     #duration_range = (0, 300)
@@ -909,13 +924,16 @@ def main():
 
     #search_field = "name"
 
-    #search_input = "канелен"
-    #search_field = "name"
-    #duration_range = (0, 300)
+    search_input = "паста"
+    search_field = "name"
+    duration_range = (0, 300)
  
     # Uses Solr to do a complex search into it's index
-    complex_search(solr_url, collection_name, search_input, search_field,
+    results = complex_search(solr_url, collection_name, search_input, search_field,
                    facet_fields, facet_input, duration_range)
+    #if len(results) == 0:
+    #    complex_search(solr_url, collection_name, search_input, search_field,
+    #               facet_fields, facet_input, duration_range, True)
 
     # Generates suggestions to words while entering a search query
     #search_input = input("\nSearch input: \n")
