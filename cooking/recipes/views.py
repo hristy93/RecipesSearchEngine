@@ -109,8 +109,10 @@ def home(request, *args, **kwargs):
 def get_relevant_recipes(request, *args, **kwargs):
     if not request.GET:
         return JsonResponse({"recipes": []})
-    search_input = request.GET.get("name", "")
-    category = request.GET.get("category", "основно")
+    search_input = request.GET.get("name")
+    category = request.GET.get("category")
+    if not (search_input or category):
+        return JsonResponse({"recipes": []})
     recipes = more_like_this_recipe(
         SOLR_URL, COLLECTION, search_input, category)
     return JsonResponse({"recipes": [serialize_recipe(r) for r in recipes]})
