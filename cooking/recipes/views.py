@@ -3,7 +3,8 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from RecipesSearchEngine.RecipesSearchEngine import (
     generate_search_suggestions, complex_search, solr_search_recipes_by_category,
-    solr_single_term_search_by_field, solr_facet_search_recipe_category_by_field)
+    solr_single_term_search_by_field, solr_facet_search_recipe_category_by_field,
+    more_like_this_recipe)
 from .utils import serialize_recipe
 from .models import Recipe
 
@@ -80,10 +81,23 @@ def search_recipes_by_category(request, *args, **kwargs):
 
 
 def home(request, *args, **kwargs):
-    recipes = [serialize_recipe(r) for r in Recipe.objects.all()[:100]]
+    all_recipes = Recipe.objects.all()
+    difficulties = list(set(all_recipes.values_list('difficulty', flat=True)))
+    recipes = [serialize_recipe(r) for r in all_recipes[:100]]
     categories = solr_facet_search_recipe_category_by_field(
         SOLR_URL, COLLECTION, "", [])
     return render(request, "index.html", {
         "recipes": recipes,
-        "categories": list(categories['category_str'].keys())
+        "categories": list(categories['category_str'].keys()),
+        "difficulties": sorted(difficulties)
     })
+
+
+def get_relevant_recipes(request, *args, **kwargs):
+    if not request.GET:
+        return JsonResponse({"recipes": []})
+    search_input = request.GET.get("name", "")
+    category = request.GET.get("category", "основно")
+    recipes = more_like_this_recipe(
+        SOLR_URL, COLLECTION, search_input, category)
+    return JsonResponse({"recipes": [serialize_recipe(r) for r in recipes]})
