@@ -48,9 +48,9 @@ def get_complex_search_results(request, *args, **kwargs):
     if not request.GET:
         return JsonResponse({"recipes": []})
     keyword = request.GET.get("keyword")
-    search_field = request.GET.get("field", "ingredients.name")
-    categories = request.GET.getlist("categories")
-    duration_range = request.GET.getlist("duration", (0, 500))
+    search_field = request.GET.get("field", "name")
+    categories = request.GET.getlist("category")
+    duration_range = request.GET.getlist("duration[]", (0, 500))
     user = request.GET.get("user")
 
     facet_input = {}
@@ -59,7 +59,7 @@ def get_complex_search_results(request, *args, **kwargs):
     if duration_range:
         facet_input["duration"] = duration_range
     if user:
-        facet_input["user"] = user
+        facet_input["user_str"] = [user]
 
     # facet_input = {
     #     "category": categories,

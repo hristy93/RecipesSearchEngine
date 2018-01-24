@@ -107,7 +107,7 @@
               <div class="form-row">
                 <div class="form-group col-md-6">
                   <label for="inputKeyword">Ключови думи</label>
-                  <input type="text" class="form-control" id="inputKeyword" placeholder="Ключови думи" v-model="Skeyword">
+                  <input type="text" class="form-control" id="inputKeyword" placeholder="Ключови думи" v-model="Skeyword" required="required">
                 </div>
                 <div class="form-group col-md-6">
                   <label for="inputCategory">Категория</label>
@@ -118,8 +118,8 @@
                 <div class="form-group col-md-4">
                   <label for="inputDuration1">Време за приготвяне (мин)</label>
                   <div>
-                    <input type="number" min="0" max="359" class="form-control col-md-3" id="inputDuration1" value="0" v-model="Sduration1">
-                    <input type="number" min="1" max="360" class="form-control col-md-3" id="inputDuration2" value="60" v-model="Sduration1">
+                    <input type="number" min="0" max="359" class="form-control col-sm-4" id="inputDuration1" value="0" v-model="Sduration1">
+                    <input type="number" min="1" max="360" class="form-control col-sm-4" id="inputDuration2" value="60" v-model="Sduration2">
                   </div>
                 </div>
                 <div class="form-group col-md-4">
@@ -139,6 +139,7 @@
                 </div>
                 -->
               </div>
+                <!--
               <div class="form-group">
                 <label for="inputDifficulty">Трудност</label>
                 <div class="form-check" v-for="diff in difficulties">
@@ -148,6 +149,7 @@
                   </label>
                 </div>
               </div>
+              -->
               <button type="submit" class="btn btn-primary" @click="advancedSearch">Търси</button>
             </form>
           </div>
@@ -230,9 +232,9 @@
             Skeyword: '',
             Scategory: '',
             Suser: '',
-            Sduration1: '',
-            Sduration2: '',
-            Sdifficulty: ''
+            Sduration1: 0,
+            Sduration2: 500,
+            // Sdifficulty: 1.0
         },
         methods: {
             search: function(event) {
@@ -284,7 +286,7 @@
                       category: this.Scategory,
                       user: this.Suser,
                       duration: [this.Sduration1, this.Sduration2],
-                      difficulty: this.Sdifficulty
+                      // difficulty: this.Sdifficulty
                     }
                 })
                   .then(function (response) {
