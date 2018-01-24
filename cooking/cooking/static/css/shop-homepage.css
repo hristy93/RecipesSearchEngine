@@ -72,6 +72,9 @@ body {
   background-clip: padding-box;
   text-align: center;
 }*/
+#inputDuration1, #inputDuration2 {
+  display: inline;
+}
 
 .button {
   font-size: 1em;

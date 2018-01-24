@@ -39,7 +39,7 @@
               <a class="nav-link" href="#">За нас</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="#">Разширено търсене</a>
+              <a class="nav-link" href="#navbarResponsive" @click="displayForm=!displayForm">Разширено търсене</a>
             </li>
             <li class="nav-item">
               <form @submit="search" class="form-inline my-2 my-lg-0 mr-lg-2">
@@ -74,8 +74,9 @@
         <!-- /.col-lg-3 -->
 
         <div class="col-lg-9">
-<!-- 
-          <div id="carouselExampleIndicators" class="carousel slide my-4" data-ride="carousel">
+
+          <div id="advanced-search" class="carousel slide my-4" data-ride="carousel" v-show="displayForm">
+            <!--
             <ol class="carousel-indicators">
               <li data-target="#carouselExampleIndicators" data-slide-to="0" class="active"></li>
               <li data-target="#carouselExampleIndicators" data-slide-to="1"></li>
@@ -100,8 +101,61 @@
               <span class="carousel-control-next-icon" aria-hidden="true"></span>
               <span class="sr-only">Next</span>
             </a>
+              -->
+
+            <form>
+              <div class="form-row">
+                <div class="form-group col-md-6">
+                  <label for="inputName">Име на рецепта</label>
+                  <input type="text" class="form-control" id="inputName" placeholder="Име">
+                </div>
+                <div class="form-group col-md-6">
+                  <label for="inputIngredient">Съставка</label>
+                  <input type="text" class="form-control" id="inputIngredient" placeholder="Съставка">
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="inputCategory">Категория</label>
+                <input type="text" class="form-control" id="inputCategory" placeholder="Категория">
+              </div>
+              <div class="form-row">
+                <div class="form-group col-md-4">
+                  <label for="inputDuration1">Време за приготвяне (мин)</label>
+                  <div>
+                    <input type="number" min="0" max="359" class="form-control col-md-3" id="inputDuration1" value="0">
+                    <input type="number" min="1" max="360" class="form-control col-md-3" id="inputDuration2" value="60">
+                  </div>
+                </div>
+                <div class="form-group col-md-4">
+                  <label for="inputServings">Брой порции</label>
+                  <select id="inputServings" class="form-control">
+                    <option selected>Избери...</option>
+                    <option  v-for="diff in [1, 2, 3, 4]">[diff]</option>
+                  </select>
+                </div>
+                <!--
+                <div class="form-group col-md-4">
+                  <label for="inputDifficulty">Трудност</label>
+                  <select id="inputDifficulty" class="form-control">
+                    <option selected>Избери...</option>
+                    <option  v-for="diff in difficulties">[diff]</option>
+                  </select>
+                </div>
+                -->
+              </div>
+              <div class="form-group">
+                <label for="inputDifficulty">Трудност</label>
+                <div class="form-check" v-for="diff in difficulties">
+                  <input class="form-check-input" type="checkbox" :id="diff" :value="diff">
+                  <label class="form-check-label" :for="'#' + diff">
+                    [diff]
+                  </label>
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary">Търси</button>
+            </form>
           </div>
- -->
+
           <div class="row my-4" id="recipes-holder">
 
             <div class="col-lg-4 col-md-6 mb-4" v-for="recipe in recipes">
@@ -138,9 +192,6 @@
                 </div>
               </div>
 
-              <div v-for="res in results">
-                <p v-html="res"></p>
-              </div>
           </div>
           <!-- /.row -->
 
@@ -176,7 +227,8 @@
             recipes: {{ recipes|safe }},
             categories: {{ categories|safe }},
             keyword: "",
-            results: []
+            difficulties: {{ difficulties|safe }},
+            displayForm: false
         },
         methods: {
             search: function(event) {
