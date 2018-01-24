@@ -1,31 +1,31 @@
 # -*- coding: utf-8 -*-
 import json
 import sys
-import math
-import difflib
-import time
-import nltk
+#import math
+#import difflib
+#import time
+#import nltk
 import re
-from heapq import nlargest
-from bs4 import BeautifulSoup
-import pandas as pd
-import numpy as np
-from itertools import compress
-from sklearn.cluster import KMeans
-from sklearn.neighbors import NearestNeighbors
-from sklearn.naive_bayes import GaussianNB
-from sklearn.feature_extraction.text import TfidfTransformer
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.model_selection import KFold
-from sklearn.model_selection import train_test_split
-from sklearn.model_selection import cross_val_score
-from sklearn.metrics import classification_report
-from sklearn.metrics import accuracy_score
+#from heapq import nlargest
+#from bs4 import BeautifulSoup
+#import pandas as pd
+#import numpy as np
+#from itertools import compress
+#from sklearn.cluster import KMeans
+#from sklearn.neighbors import NearestNeighbors
+#from sklearn.naive_bayes import GaussianNB
+#from sklearn.feature_extraction.text import TfidfTransformer
+#from sklearn.feature_extraction.text import TfidfVectorizer
+#from sklearn.model_selection import KFold
+#from sklearn.model_selection import train_test_split
+#from sklearn.model_selection import cross_val_score
+#from sklearn.metrics import classification_report
+#from sklearn.metrics import accuracy_score
 # from scipy.spatial.distance import cdist
 # from scipy.spatial.distance import pdist
 # import matplotlib.pyplot as plt
-
-from bs4 import BeautifulSoup
+#from bulgarian_stemmer.bulgarian_stemmer import BulgarianStemmer
+from bulgarian_stemmer.bulstem import *
 from SolrClient import SolrClient
 from transliterate import translit, get_available_language_codes
 
@@ -51,7 +51,8 @@ def read_json(json_file_name):
     return data
 
 
-def preprocess_ingredients(data, igredients_stop_words, write_back_ingredients):
+def preprocess_ingredients(data, common_ingredients, processing_ingredients,
+                           write_back_ingredients):
     """ Prepocesses the ingredients from the json data """
     print("Preprocessing the recipes' ingredients ...")
 
@@ -59,16 +60,16 @@ def preprocess_ingredients(data, igredients_stop_words, write_back_ingredients):
     stemmed_ingredients = set()
     common_ingredients_count = 0
     ingredients_count = 0
+    unwanted_words_count = 0
 
     for item in data:
         for ingredient in item['ingredients']:
             if ingredient['name'] != '':
-                ingredients.add(ingredient['name'])
                 ingredients_count += 1
                 
                 # Marks the ingredients from the stop words list as common
-                if ingredient['name'] in igredients_stop_words or \
-                    any([item for item in igredients_stop_words if item in ingredient['name']]):
+                if ingredient['name'] in common_ingredients or \
+                    any([item for item in common_ingredients if item in ingredient['name']]):
                    
                     #print("  Marked {0} as common ingredient"
                     #      .format(ingredient['name']))
@@ -80,7 +81,22 @@ def preprocess_ingredients(data, igredients_stop_words, write_back_ingredients):
                     
                 # Gets the stemmed ingredients
                 stemmed_ingredient = stemm_ingredient(ingredient['name'])
+
+                # Removes the unwanted words from the ingredients
+                #print("  Removing unwanted words ...")
+                #for unwanted_word in processing_ingredients:
+                #    unwanted_word = stemm_ingredient(unwanted_word)
+                #    if unwanted_word in stemmed_ingredient:
+                #        unwanted_words_count += 1
+                #        temp_ingredient = stemmed_ingredient
+                #        re.sub(unwanted_word, "", stemmed_ingredient)
+                        #print("Removed {0} from {1}".format(unwanted_word,
+                        #                                    temp_ingredient))
+
+                # Adds the ingredients to the corresponding lists
+                stemmed_ingredient = stemmed_ingredient.lstrip().rstrip()
                 stemmed_ingredients.add(stemmed_ingredient)
+                ingredients.add(ingredient['name'])
 
                 # Writes back the stemmed ingredient into the data
                 if write_back_ingredients:
@@ -91,6 +107,7 @@ def preprocess_ingredients(data, igredients_stop_words, write_back_ingredients):
     print("  Found {0} common ingredients from {1}".format(common_ingredients_count, ingredients_count))
     print("  Found {0} unique ingredients from {1}".format(len(ingredients), ingredients_count))
     print("  Stemmed {0} ingedients from {1} unique ones".format(len(stemmed_ingredients), len(ingredients)))
+    #print("  Removed {0} unwanted words from the ingredients".format(unwanted_words_count))
     return ingredients, stemmed_ingredients, common_ingredients_count
 
 
@@ -108,7 +125,7 @@ def stemm_ingredient(ingredient):
         stemmed_ingredient = stem(ingredient)
         # print(ingredient, " ", stemmed_ingredient)
 
-    return stemmed_ingredient
+    return stemmed_ingredient.lstrip().rstrip()
     # stemmer.print_word(item)
 
 
@@ -135,7 +152,7 @@ def stemm_ingredients(ingredients):
     # stemmer.print_word(item)
 
 
-def get_stemmed_categories(data, write_back_categories):
+def preprocess_categories(data, write_back_categories):
     """Stemms category for each recipe."""
     print("\nPreprocessing the recipes' categories ...")
 
@@ -147,6 +164,7 @@ def get_stemmed_categories(data, write_back_categories):
         "супи": "суп",
         "супа": "суп"
     }
+
     for category, stemmed_category in similar_categories.items():
         categories.add(category)
         stemmed_categories.add(stemmed_category)
@@ -195,6 +213,7 @@ def preprocess_recipe_categories(recipe, categories, stemmed_categories, similar
 
     if recipe["category"] not in similar_categories.keys():
         stemmed_categories.add(stemm_category)
+
     return categories, stemmed_categories
 
 
@@ -373,15 +392,17 @@ def solr_facet_search_recipe_duration_by_field(solr_url, collection_name,
     return facet_ranges
 
 
-def preprocess_data(data, igredients_stop_words, write_back_ingredients,
-                    write_back_categories):
+def preprocess_data(data, common_ingredients, processing_ingredients,
+                    write_back_ingredients, write_back_categories):
     """ Preprocesses the data from the JSON file """
     # Preprocesses the ingredients
     ingredients, stemmed_ingredients, common_ingredients_count =\
-       preprocess_ingredients(data, igredients_stop_words, write_back_ingredients)
+       preprocess_ingredients(data, common_ingredients, processing_ingredients,
+                              write_back_ingredients)
 
     # Preprocesses the categories
-    categories, stemmed_categories = get_stemmed_categories(data, write_back_categories)
+    categories, stemmed_categories = preprocess_categories(data, write_back_categories)
+
         
     return (ingredients, stemmed_ingredients, categories,
             stemmed_categories, common_ingredients_count)
@@ -406,19 +427,25 @@ def preprocess_search_input(search_input, search_field):
     #   test1 = translit(search_input, 'bg')
 
     # Checks if the search input is incorrect
-    is_search_input_incorrect = re.search(r'[^а-яА-Я ]+', search_input)
+    is_search_input_incorrect = re.search(r'[^а-яА-Я, ]+', search_input)
     if is_search_input_incorrect:
         return None
 
 
     # Preprocesses the serach input if the search is it is a boolean query
     # with AND - 'и' and/or OR - 'или'
-    if ' и ' in search_input or ' или ' in search_input:
+    if search_field == 'ingedeients.name' and ' и ' in search_input or ' или ' in search_input or\
+        ',' in search_input:
        search_input = search_input.lower()
+       search_input = re.sub('\s*,\s*', ' AND ', search_input)
+       earch_input = re.sub(' или ', ' OR ', search_input)
+       search_input = re.sub(' и ', ' AND ', search_input)
        search_input_splitted = search_input.split(' ')
        search_input = " ".join(["*{}*".format(stem(item)) for item in search_input_splitted])
-       search_input = re.sub(' \*или\* ', ' OR ', search_input)
-       search_input = re.sub(' \*и\* ', ' AND ', search_input)
+       #search_input = re.sub(' \*или\* ', ' OR ', search_input)
+       #search_input = re.sub(' \*и\* ', ' AND ', search_input)
+       search_input = re.sub(' \*AND\* ', ' AND ', search_input)
+       search_input = re.sub(' \*OR\* ', ' OR ', search_input)
        #replacer = re.compile(r'(\w+)')
        #search_input = replacer.sub(r'*\1*', search_input)
 
@@ -436,7 +463,8 @@ def get_incorrect_input_suggestion(search_input):
 
 
 def complex_search(solr_url, collection_name, search_input, search_field,
-                   facet_fields, facet_input, duration_range = ()):
+                   facet_fields, facet_input, duration_range = (0, 500),
+                   use_pharase = False, recipe_name_boost_factor = 5):
     """Uses Solr to do a complex search with all types of seaches 
     and facets
     """
@@ -454,7 +482,14 @@ def complex_search(solr_url, collection_name, search_input, search_field,
     else:
         search_input = preprocessed_search_input
 
-    query = "{0}:*{1}*".format(search_field, search_input)
+    query = "{0}:*{1}* or {0}:\"{1}\"".format(search_field, search_input)
+    #query = "{0}:*{1}*^{2} or {0}:\"{1}\"^{2}".format(search_field, search_input,
+    #                                               recipe_name_boost_factor)
+
+    #if not use_pharase:
+    #    query = "{0}:*{1}*".format(search_field, search_input)
+    #else:
+    #    query = "{0}:\"{1}\"".format(search_field, search_input)
     query_body = dict()
     query_body['q'] = query
 
@@ -464,7 +499,7 @@ def complex_search(solr_url, collection_name, search_input, search_field,
 
     # Gets the categories facets input
     categories_facet_input_query = ""
-    if "category" in facet_input.keys() and facet_input["category"]:
+    if "category" in facet_input.keys():
         categories_facet_input_query = "{!tag=CATEGORY}"
         categories_facet_input_query += "category:"
         categories_input = facet_input["category"]
@@ -473,7 +508,7 @@ def complex_search(solr_url, collection_name, search_input, search_field,
 
     # Gets the users facets input
     users_facet_input_query = ""
-    if "user_str" in facet_input.keys() and facet_input["user_str"]:
+    if "user_str" in facet_input.keys():
         users_facet_input_query = "{!tag=USER}"
         users_facet_input_query += "user:"
         users_input = facet_input["user_str"]
@@ -482,7 +517,7 @@ def complex_search(solr_url, collection_name, search_input, search_field,
 
     # Gets the duration facets input
     duration_facet_input_query = ""
-    if "duration" in facet_input.keys() and facet_input["duration"]:
+    if "duration" in facet_input.keys():
         duration_facet_input_query = "{!tag=DURATION}"
         duration_facet_input_query += "duration:"
         duration_input = facet_input["duration"]
@@ -528,8 +563,8 @@ def complex_search(solr_url, collection_name, search_input, search_field,
     results_count = len(result.docs)
     spellcheck_data = result.data["spellcheck"]
 
-    suggested_search_query_words, suggested_search_queries = [], []
-    if not spellcheck_data["correctlySpelled"]:
+    if len(spellcheck_data["suggestions"]) != 0 and\
+        len(spellcheck_data["collations"]) != 0:
         suggested_search_query_words, suggested_search_queries =\
            get_spellchecker_suggestions(solr_url,
                                         collection_name,
@@ -819,17 +854,28 @@ def main():
     # ingredients = set()
     stemmed_ingredients = set()
     # ingredients = list(ingredients)
-    igredients_stop_words = ['сол', 'пипер', 'олио', 'лук', 'вода',
+    common_ingredients = ['сол', 'пипер', 'олио', 'лук', 'вода',
                              'захар', 'магданоз', 'босилек', 'подправк',
                             'кориандър', 'джодж', 'чубри', 'кими', 'дафинов',
                             'розмарин', 'мащерка', 'копър', 'зехтин']
+    processing_ingredients = ['накълцан', 'смачкан', 'изсушен', 'наряз', 'смлени',
+                             'смлян', 'сварен', 'обелен', 'узрял', 'печени', 'смлян'
+                            'узрел', 'филиран', 'консерва', 'пушен', 'маринован'
+                             'пакет', 'концентриран', 'на прах', 'натрошен', 'сух', 'суха',
+                            'трохи', "зрял", "намачкан", 'ронлив', 'сушени', 'сушен',
+                            'нискомаслен', "с черупки", 'прeсен', 'пряс', 'замразен',
+                           'горно', 'долно', 'настърган', 'замразен', 'маринован',
+                           'големи', 'голям', 'малк', 'малък', 'белен', 'сурови',
+                           'стерилизиран', 'млад', 'замразен', 'белени', 'разтопен',
+                           'пречистeн']
 
     # Preprocesses the data from the json file
     write_back_ingredients = False
     write_back_categories = True
     (ingredients, stemmed_ingredients, categories,
         stemmed_categories, common_ingredients_count) =\
-       preprocess_data(data, igredients_stop_words, 
+       preprocess_data(data, common_ingredients,
+                       processing_ingredients,
                        write_back_ingredients, 
                        write_back_categories)
     ingredients_count = len(ingredients)
@@ -873,20 +919,21 @@ def main():
     facet_input = dict()
     facet_fields = ["category", "user_str", "duration"]
     #facet_input["category"] = ["основ", "сал"]
-    #duration_range = (20, 40)
-    facet_input["duration"] = duration_range
-    facet_input["user_str"] = ["Гомеш"]
-    facet_input["category"] = ["дес", "осн"]
-    search_input = "сла"
-    search_field = "ingredients.name"
+    #duration_range = (0, 80)
+    #facet_input["duration"] = duration_range
+    #facet_input["user_str"] = ["Мария"]
+    #facet_input["category"] = ["десерт", "основно"]
+    #search_input = "сладолед"
+    #search_field = "name"
 
     # Multiple query inputs for the complex search
-    duration_range = (0, 100)
+    #duration_range = (0, 100)
     #search_input = "картофи или пиле"
     #search_input = "kartofi ili pile"
     #search_input = "картофи или пиле"
     #search_input = "Пай с пуйка и шунка"
-    #search_field = "name"
+    #search_input = "картофи , пиле и чушки"
+    #search_field = "ingredients.name"
 
     # Query inputs for the spellchecker
     #duration_range = (0, 300)
@@ -898,13 +945,16 @@ def main():
 
     #search_field = "name"
 
-    #search_input = "канелен"
-    #search_field = "name"
-    #duration_range = (0, 300)
+    search_input = "паста"
+    search_field = "name"
+    duration_range = (0, 300)
  
     # Uses Solr to do a complex search into it's index
-    complex_search(solr_url, collection_name, search_input, search_field,
+    results = complex_search(solr_url, collection_name, search_input, search_field,
                    facet_fields, facet_input, duration_range)
+    #if len(results) == 0:
+    #    complex_search(solr_url, collection_name, search_input, search_field,
+    #               facet_fields, facet_input, duration_range, True)
 
     # Generates suggestions to words while entering a search query
     #search_input = input("\nSearch input: \n")
@@ -972,7 +1022,7 @@ def main():
     #        if ' ' in ingredient_name:
     #            ingredient_name = '_'.join(ingredient_name.split(' '))
     #        ingredients_inner_data.append(ingredient_name)
-    #    meaningful_ingedients = [w for w in ingredients_inner_data if not w in igredients_stop_words]
+    #    meaningful_ingedients = [w for w in ingredients_inner_data if not w in common_ingredients]
     #    ingredients_inner_data = " ".join(ingredients_inner_data)
     #    tfidf_raw_data.append(ingredients_inner_data)
 
@@ -982,7 +1032,7 @@ def main():
     #                             sublinear_tf = True,
     #                             binary = True,
     #                             use_idf = True,
-    #                             stop_words = igredients_stop_words)
+    #                             stop_words = common_ingredients)
     # result = vectorizer.fit_transform(tfidf_raw_data)
 
     # print('vocabulary', vectorizer.vocabulary_)
@@ -1014,104 +1064,6 @@ def main():
     # Get the tf-idf data manually
     # tfidf_data = get_tfidf_data(tf_data, idf_data, data_count)
     # print('Tf-idf data', tfidf_data)
-
-SOLR_URL = "http://localhost:8983/solr"
-JSON_FILENAME = "scrapy_crawler/scrapy_crawler/recipes.json"
-# json_file_name = "recipes_500_refined_edited.json"
-
-
-def call_recipes():
-    def main():
-        # Defines some variables and constants
-        collection_name = "recipes_search_engine"
-        tfidf_data = []
-
-        # Reads the recipes data from the json file
-        data = read_json(JSON_FILENAME)
-
-        # More variables
-        data_count = len(data)
-        ingredient_data = dict()
-        ingredients_count_info = dict()
-        # ingredients = set()
-        stemmed_ingredients = set()
-        # ingredients = list(ingredients)
-        igredients_stop_words = ['сол', 'пипер', 'олио', 'лук', 'вода',
-                                 'захар', 'магданоз', 'босилек', 'подправк',
-                                 'кориандър',
-                                 'канела', 'джодж', 'чубри', 'кими', 'дафинов',
-                                 'розмарин', 'мащерка', 'копър', 'зехтин']
-
-        # Preprocesses the data from the json file
-        write_back_ingredients = False
-        write_back_categories = True
-        (ingredients, stemmed_ingredients, categories,
-         stemmed_categories, common_ingredients_count) = \
-            preprocess_data(data, igredients_stop_words,
-                            write_back_ingredients,
-                            write_back_categories)
-        ingredients_count = len(ingredients)
-
-        # Saves the preprocessed data into a new file
-        # save_preprocessed_data_to_json(json_file_name, data)
-
-        # for recipe filtering by category id
-        # recipe_category_id = 1
-        # pe_category = ""
-        # filter_data_by_category(recipe_category_id, data)
-
-        # Prints general info about the recipe data
-        print("\nRecipes data information:")
-        print("  recipes count:", data_count)
-        print("  unique ingredients count:", ingredients_count)
-        print("  stemmed ingredients count:", len(stemmed_ingredients))
-        print("  common ingredients count:", common_ingredients_count)
-        print("  categories count", len(categories))
-        print("  stemmed categories count", len(stemmed_categories))
-
-        # Deletes all the recipes from the Solr collection
-        # delete_all_documents_in_solr(solr_url, collection_name)
-
-        # Adds JSON file data into the Solr collection
-        # add_documents_in_solr(solr_url, collection_name, json_file_name, data)
-
-        # Stemmes the ingredients
-        # stemmed_ingredients = stemm_ingredients(ingredients)
-        # print("stemmed_ingredients count", len(stemmed_ingredients))
-
-        # Processes the whole initial data from the json and gets the necessary data
-        # process_data(data, ingredients, ingredient_data, ingredients_count_info)
-        # print(ingredient_data[0])
-
-        # Complex query inputs for the complex search
-        facet_input = dict()
-        facet_fields = ["category", "user_str", "duration"]
-        # facet_input["category"] = ["основ", "сал"]
-        duration_range = (20, 40)
-        facet_input["duration"] = duration_range
-        facet_input["user_str"] = ["Гомеш"]
-        facet_input["category"] = ["дес", "осн"]
-        search_input = "сла"
-        search_field = "ingredients.name"
-
-        # Multiple query inputs for the complex search
-        duration_range = (0, 100)
-        # search_input = "картофи или пиле"
-        # search_input = "kartofi ili pile"
-        # search_input = "картофи или пиле"
-        # search_input = "Пай с пуйка и шунка"
-        # search_field = "name"
-
-        # Query inputs for the spellchecker
-        # duration_range = (0, 100)
-        # search_input = "школод"
-        # search_input = "пилашко месо"
-        # search_input = "шоколдови бисвити"
-        # search_field = "name"
-
-        # Uses Solr to do a complex search into it's index
-        complex_search(SOLR_URL, collection_name, search_input, search_field,
-                       facet_fields, facet_input, duration_range)
 
 
 if __name__ == "__main__":
