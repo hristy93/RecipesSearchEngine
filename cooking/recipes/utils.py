@@ -3,6 +3,7 @@ from .models import Ingredient, Recipe
 
 
 def serialize_recipe(recipe):
+    categories = read_json('RecipesSearchEngine/categorie_preprocessed.json')
     if type(recipe) is dict:
         return {
             "id": recipe["id"],
@@ -11,7 +12,7 @@ def serialize_recipe(recipe):
             "ingredients": recipe["ingredients.unstructured_data"],
             "instructions": recipe["instructions"].split('\n'),
             "duration": recipe["duration"][0],
-            "categories": recipe["category_str"],
+            "categories": [categories[recipe["category"]]],
             "servings": recipe["servings"][0],
             "rating": recipe["rating"][0],
             "user": recipe["user"],

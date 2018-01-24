@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 from django.http import JsonResponse
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
+from bulgarian_stemmer.bulstem import stem
 from RecipesSearchEngine.RecipesSearchEngine import (
     generate_search_suggestions, complex_search, solr_search_recipes_by_category,
     solr_single_term_search_by_field, solr_facet_search_recipe_category_by_field,
     more_like_this_recipe)
-from .utils import serialize_recipe
+from .utils import serialize_recipe, read_json
 from .models import Recipe
 
 
@@ -55,7 +56,7 @@ def get_complex_search_results(request, *args, **kwargs):
 
     facet_input = {}
     if categories:
-        facet_input["category"] = categories
+        facet_input["category"] = [stem(c) for c in categories]
     if duration_range:
         facet_input["duration"] = duration_range
     if user:
@@ -82,9 +83,9 @@ def get_complex_search_results(request, *args, **kwargs):
 
 def search_recipes_by_category(request, *args, **kwargs):
     # TODO: escape * and other symbols
-    if not request.GET:
+    if not (request.GET or request.GET.get("category")):
         return JsonResponse({"recipes": []})
-    keyword = request.GET.get("category")
+    keyword = stem(request.GET.get("category"))
     titles = solr_search_recipes_by_category(
         SOLR_URL, COLLECTION, keyword)
     recipes = Recipe.objects.filter(name__in=titles)[:100]
@@ -96,11 +97,13 @@ def home(request, *args, **kwargs):
     difficulties = list(set(all_recipes.values_list('difficulty', flat=True)))
     users = list(set(all_recipes.values_list('user', flat=True)))
     recipes = [serialize_recipe(r) for r in all_recipes[:100]]
-    categories = solr_facet_search_recipe_category_by_field(
-        SOLR_URL, COLLECTION, "", [])
+    # categories = solr_facet_search_recipe_category_by_field(
+    #     SOLR_URL, COLLECTION, "", [])
+    categories = read_json('RecipesSearchEngine/categorie_preprocessed.json')
     return render(request, "index.html", {
         "recipes": recipes,
-        "categories": sorted(list(categories['category_str'].keys())),
+        # "categories": sorted(list(categories['category_str'].keys())),
+        "categories": sorted(categories.values()),
         "difficulties": sorted(difficulties),
         "users": sorted(users)
     })
@@ -114,5 +117,19 @@ def get_relevant_recipes(request, *args, **kwargs):
     if not (search_input or category):
         return JsonResponse({"recipes": []})
     recipes = more_like_this_recipe(
-        SOLR_URL, COLLECTION, search_input, category)
+        SOLR_URL, COLLECTION, search_input, stem(category))
     return JsonResponse({"recipes": [serialize_recipe(r) for r in recipes]})
+
+
+def get_recipe_details(request, id):
+    recipe = get_object_or_404(Recipe, id=id)
+    search_input = recipe.name
+    category = stem(recipe.category)
+    recipes = more_like_this_recipe(
+        SOLR_URL, COLLECTION, search_input, category)
+    return render(request, "index.html", {
+        "recipes": recipes,
+        "categories": [],
+        "difficulties": [],
+        "users": []
+    })

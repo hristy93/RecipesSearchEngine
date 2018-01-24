@@ -16,7 +16,7 @@ Including another URLconf
 from django.urls import path
 from .views import (
     get_recipes_by_keyword, get_complex_search_results, home,
-    search_recipes_by_keyword, search_recipes_by_category, get_relevant_recipes)
+    search_recipes_by_keyword, search_recipes_by_category, get_relevant_recipes, get_recipe_details)
 
 
 urlpatterns = [
@@ -26,4 +26,5 @@ urlpatterns = [
     path('category-search/', search_recipes_by_category, name='category-search'),
     path('complex-search/', get_complex_search_results, name='complex-search'),
     path('relevant-search/', get_relevant_recipes, name='relevant-search'),
+    path('details/<int:id>/', get_recipe_details, name='details'),
 ]

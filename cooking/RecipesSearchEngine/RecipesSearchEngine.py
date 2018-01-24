@@ -159,6 +159,7 @@ def preprocess_categories(data, write_back_categories):
     categories = set()
     stemmed_categories = set()
     unfiltered_recipes = {}
+    all_categories = {}
 
     similar_categories = {
         "супи": "суп",
@@ -168,6 +169,7 @@ def preprocess_categories(data, write_back_categories):
     for category, stemmed_category in similar_categories.items():
         categories.add(category)
         stemmed_categories.add(stemmed_category)
+        all_categories[stemmed_category] = category
 
     for index, recipe in enumerate(data):
         # Replaces an unkonwn recipe category with "други"
@@ -180,9 +182,9 @@ def preprocess_categories(data, write_back_categories):
             unfiltered_recipes[" ".join(splitted_category)] = index
             continue
 
-        categories, stemmed_categories = preprocess_recipe_categories(
+        categories, stemmed_categories, all_categories = preprocess_recipe_categories(
             recipe, categories, stemmed_categories, similar_categories,
-            write_back_categories)
+            write_back_categories, all_categories)
 
     for complex_category, recipe_index in unfiltered_recipes.items():
         simple_categories = complex_category.split()
@@ -192,21 +194,23 @@ def preprocess_categories(data, write_back_categories):
         else:
             data[recipe_index]["category"] = next(iter(common))
 
-        categories, stemmed_categories = preprocess_recipe_categories(
+        categories, stemmed_categories, all_categories = preprocess_recipe_categories(
             data[recipe_index], categories, stemmed_categories,
-            similar_categories, write_back_categories)
+            similar_categories, write_back_categories, all_categories)
 
     print("  Stemmed {0} categories from {1}".format(len(stemmed_categories), len(categories)))
     print("    Stemmed categories", stemmed_categories)
+    save_preprocessed_data_to_json('categories_map', all_categories)
     return categories, stemmed_categories
 
 
-def preprocess_recipe_categories(recipe, categories, stemmed_categories, similar_categories, write_back_categories):
+def preprocess_recipe_categories(recipe, categories, stemmed_categories, similar_categories, write_back_categories, all_categories):
     categories.add(recipe["category"])
 
     # Stemms the category
     stemm_category = stem(recipe["category"])
     # print(recipe["category"], "->", stemm_category)
+    all_categories[stemm_category] = recipe["category"]
 
     if write_back_categories:
         recipe["category"] = stemm_category
@@ -214,7 +218,7 @@ def preprocess_recipe_categories(recipe, categories, stemmed_categories, similar
     if recipe["category"] not in similar_categories.keys():
         stemmed_categories.add(stemm_category)
 
-    return categories, stemmed_categories
+    return categories, stemmed_categories, all_categories
 
 
 def process_data(data, ingredients, ingredient_data, ingredients_count_info):
