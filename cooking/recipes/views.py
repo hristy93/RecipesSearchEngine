@@ -15,6 +15,7 @@ JSON_FILENAME = "scrapy_crawler/scrapy_crawler/recipes.json"
 COLLECTION = "recipes_search_engine"
 
 
+# old
 def get_recipes_by_keyword(request, *args, **kwargs):
     # TODO: escape * and other symbols
     if not request.GET:
@@ -99,7 +100,7 @@ def home(request, *args, **kwargs):
         SOLR_URL, COLLECTION, "", [])
     return render(request, "index.html", {
         "recipes": recipes,
-        "categories": list(categories['category_str'].keys()),
+        "categories": sorted(list(categories['category_str'].keys())),
         "difficulties": sorted(difficulties),
         "users": sorted(users)
     })

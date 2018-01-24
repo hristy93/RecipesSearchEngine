@@ -791,7 +791,7 @@ def solr_search_recipes_by_category(solr_url, collection_name, search_input,
     print("\nFinding the recipes for category", search_input)
     solr = SolrClient(solr_url)
     stem_value = stem(search_input)
-    query = "{0}_str:*{1}*".format(field, stem_value)
+    query = "{0}_str:\"{1}\"".format(field, stem_value)
     result = solr.query(collection_name, {
         'q': query,
         'fl': search_field
