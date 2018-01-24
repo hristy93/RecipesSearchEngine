@@ -494,17 +494,17 @@ def complex_search(solr_url, collection_name, search_input, search_field,
     query_body['fq'] = facets_input_query
             
     # Gets the facets data
-    if "category" in facet_fields and facet_input["category"]:
+    if "category" in facet_fields:
         categories_facet_results = solr_facet_search_recipe_category_by_field(
                                    solr_url, collection_name, search_input,
                                    facets_input_query, search_field)
 
-    if "user_str" in facet_fields and facet_input["user_str"]:
+    if "user_str" in facet_fields:
         users_facet_result = solr_facet_search_recipe_user_by_field(
                              solr_url, collection_name, search_input,
                              facets_input_query, search_field)
 
-    if "duration" in facet_fields and facet_input["duration"]:
+    if "duration" in facet_fields:
         duration_facet_result = solr_facet_search_recipe_duration_by_field(
                                 solr_url, collection_name, search_input,
                                 facets_input_query, duration_range,

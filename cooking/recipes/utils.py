@@ -14,6 +14,7 @@ def serialize_recipe(recipe):
             "categories": recipe["category_str"],
             "servings": recipe["servings"][0],
             "rating": recipe["rating"][0],
+            "user": recipe["user"],
         }
     return {
         "id": recipe.id,
@@ -25,6 +26,7 @@ def serialize_recipe(recipe):
         "categories": [recipe.category],
         "servings": recipe.servings,
         "rating": recipe.rating,
+        "user": recipe.user
     }
 
 

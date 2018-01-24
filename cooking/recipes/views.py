@@ -48,14 +48,25 @@ def get_complex_search_results(request, *args, **kwargs):
         return JsonResponse({"recipes": []})
     keyword = request.GET.get("keyword")
     search_field = request.GET.get("field", "ingredients.name")
-    categories = request.GET.getlist("categories", ["осн"])
-    duration_range = request.GET.getlist("duration", (0, 100))
+    categories = request.GET.getlist("categories")
+    duration_range = request.GET.getlist("duration", (0, 500))
+    user = request.GET.get("user")
+
+    facet_input = {}
+    if categories:
+        facet_input["category"] = categories
+    if duration_range:
+        facet_input["duration"] = duration_range
+    if user:
+        facet_input["user"] = user
+
+    # facet_input = {
+    #     "category": categories,
+    #     "user_str": user,
+    #     "duration": duration_range
+    # }
+
     keys = ["category", "user_str", "duration"]
-    facet_input = {
-        "category": categories,
-        "user_str": None,
-        "duration": duration_range
-    }
     facet_fields = request.GET.getlist("fields", keys)
     recipes, suggested_search_query_words, suggested_search_queries = complex_search(
         SOLR_URL, COLLECTION, keyword, search_field,
@@ -63,7 +74,6 @@ def get_complex_search_results(request, *args, **kwargs):
     )
     return JsonResponse({
         "recipes": [serialize_recipe(r) for r in recipes],
-        # "recipes": recipes,
         "suggested_words": suggested_search_query_words,
         "suggested_queries": suggested_search_queries
     })
@@ -83,13 +93,15 @@ def search_recipes_by_category(request, *args, **kwargs):
 def home(request, *args, **kwargs):
     all_recipes = Recipe.objects.all()
     difficulties = list(set(all_recipes.values_list('difficulty', flat=True)))
+    users = list(set(all_recipes.values_list('user', flat=True)))
     recipes = [serialize_recipe(r) for r in all_recipes[:100]]
     categories = solr_facet_search_recipe_category_by_field(
         SOLR_URL, COLLECTION, "", [])
     return render(request, "index.html", {
         "recipes": recipes,
         "categories": list(categories['category_str'].keys()),
-        "difficulties": sorted(difficulties)
+        "difficulties": sorted(difficulties),
+        "users": sorted(users)
     })
 
 
