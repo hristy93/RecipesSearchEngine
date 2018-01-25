@@ -308,7 +308,10 @@ def solr_facet_search_recipe_category_by_field(solr_url, collection_name,
                                                facet_field="category_str"):
     """Uses Solr to search with a facet for a recipe's category"""
     solr = SolrClient(solr_url)
-    query = "{0}:*{1}*".format(search_field, search_input)
+    if search_input == ":":
+        query = "*{0}*".format(search_input)
+    else:
+        query = "{0}:*{1}*".format(search_field, search_input)
     print("\nCategory facet search:")
     result = solr.query(collection_name, {
         'q': query,
@@ -339,7 +342,10 @@ def solr_facet_search_recipe_user_by_field(solr_url, collection_name,
                                            facet_field="user_str"):
     """Uses Solr to search with a facet for a recipe's user"""
     solr = SolrClient(solr_url)
-    query = "{0}:*{1}*".format(search_field, search_input)
+    if search_input == ":":
+        query = "*{0}*".format(search_input)
+    else:
+        query = "{0}:*{1}*".format(search_field, search_input)
     print("\nUser facet search:")
     result = solr.query(collection_name, {
         'q': query,
@@ -369,7 +375,10 @@ def solr_facet_search_recipe_duration_by_field(solr_url, collection_name,
                                                facet_field="duration"):
     """Uses Solr to search with a facet for a recipe's duration"""
     solr = SolrClient(solr_url)
-    query = "{0}:*{1}*".format(search_field, search_input)
+    if search_input == ":":
+        query = "*{0}*".format(search_input)
+    else:
+        query = "{0}:*{1}*".format(search_field, search_input)
     print("\nDuration facet search:")
     # duration_query = facet_field + ':[' + str(duration_range[0]) + '%28TO%28' + str(duration_range[1]) + ']'
     result = solr.query(collection_name, {
@@ -449,6 +458,9 @@ def preprocess_search_input(search_input, search_field):
        #replacer = re.compile(r'(\w+)')
        #search_input = replacer.sub(r'*\1*', search_input)
 
+    if search_input == "":
+        search_input = ":"
+
     return search_input
 
 
@@ -464,7 +476,7 @@ def get_incorrect_input_suggestion(search_input):
 
 def complex_search(solr_url, collection_name, search_input, search_field,
                    facet_fields, facet_input, duration_range = (0, 500),
-                   use_pharase = False, recipe_name_boost_factor = 5):
+                   use_phrase = True, recipe_name_boost_factor = 5):
     """Uses Solr to do a complex search with all types of seaches 
     and facets
     """
@@ -482,7 +494,16 @@ def complex_search(solr_url, collection_name, search_input, search_field,
     else:
         search_input = preprocessed_search_input
 
-    query = "{0}:*{1}* or {0}:\"{1}\"".format(search_field, search_input)
+    if search_input == ":":
+        query = "*{0}*".format(search_input)
+        #facet_fields = []
+    elif use_phrase:
+        query = "{0}:*{1}* or {0}:\"{1}\"^{2}".format(search_field, search_input,
+                                                   recipe_name_boost_factor)
+  
+    else:
+        query = "{0}:*{1}*".format(search_field, search_input)
+
     #query = "{0}:*{1}*^{2} or {0}:\"{1}\"^{2}".format(search_field, search_input,
     #                                               recipe_name_boost_factor)
 
@@ -490,6 +511,7 @@ def complex_search(solr_url, collection_name, search_input, search_field,
     #    query = "{0}:*{1}*".format(search_field, search_input)
     #else:
     #    query = "{0}:\"{1}\"".format(search_field, search_input)
+
     query_body = dict()
     query_body['q'] = query
 
@@ -561,43 +583,49 @@ def complex_search(solr_url, collection_name, search_input, search_field,
     print("url: ", url, "\n")
 
     results_count = len(result.docs)
-    spellcheck_data = result.data["spellcheck"]
 
-    if len(spellcheck_data["suggestions"]) != 0 and\
-        len(spellcheck_data["collations"]) != 0:
-        suggested_search_query_words, suggested_search_queries =\
-           get_spellchecker_suggestions(solr_url,
-                                        collection_name,
-                                        search_input,
-                                        search_field,
-                                        spellcheck_data)
-        return suggested_search_query_words, suggested_search_queries
+    if "spellcheck" in result.data.keys():
+        spellcheck_data = result.data["spellcheck"]
 
-        #if not suggested_search_query_words and not suggested_search_queries:
-        #    spitted_search_input = search_input.split(" ")
-        #    for item in spitted_search_input:
-        #        suggested_search_item_words, suggested_search_item =\
-        #            get_spellchecker_suggestions(solr_url,
-        #                                         collection_name,
-        #                                         item,
-        #                                         search_field,
-        #                                         spellcheck_data)
+        if len(spellcheck_data["suggestions"]) != 0 and\
+            len(spellcheck_data["collations"]) != 0:
+            suggested_search_query_words, suggested_search_queries =\
+               get_spellchecker_suggestions(solr_url,
+                                            collection_name,
+                                            search_input,
+                                            search_field,
+                                            spellcheck_data)
+            return suggested_search_query_words, suggested_search_queries
+
+            #if not suggested_search_query_words and not suggested_search_queries:
+            #    spitted_search_input = search_input.split(" ")
+            #    for item in spitted_search_input:
+            #        suggested_search_item_words, suggested_search_item =\
+            #            get_spellchecker_suggestions(solr_url,
+            #                                         collection_name,
+            #                                         item,
+            #                                         search_field,
+            #                                         spellcheck_data)
+        else:
+            print("Found {0} results:".format(results_count))
+            for docs in result.docs:
+                print("  {}".format(docs['name']))
+
+        #if results_count != 0:
+        #    print("Found {0} results:".format(results_count))
+        #    for docs in result.docs:
+        #        print("  {}".format(docs['name']))
+        #else:
+            #spellcheck_data = result.data["spellcheck"]
+            #suggested_search_inputs = get_spellchecker_suggestions(solr_url,
+            #                                                       collection_name,
+            #                                                       search_input,
+            #                                                       search_field,
+            #                                                       spellcheck_data)
     else:
         print("Found {0} results:".format(results_count))
         for docs in result.docs:
             print("  {}".format(docs['name']))
-
-    #if results_count != 0:
-    #    print("Found {0} results:".format(results_count))
-    #    for docs in result.docs:
-    #        print("  {}".format(docs['name']))
-    #else:
-        #spellcheck_data = result.data["spellcheck"]
-        #suggested_search_inputs = get_spellchecker_suggestions(solr_url,
-        #                                                       collection_name,
-        #                                                       search_input,
-        #                                                       search_field,
-        #                                                       spellcheck_data)
 
     return result.docs
 
@@ -806,7 +834,7 @@ def more_like_this_recipe(solr_url, collection_name, search_input,
     #query += "AND ingredients.common:0^{0}".format(uncommon_ingredients_boost)
     result = solr.query(collection_name, {
         'q': query,
-        'fl': "* , score",
+        'fl': "name, score",
         'fq': "category_str:{0}".format(stem(category))
     }, "mlt")
 
@@ -921,12 +949,16 @@ def main():
     #search_input = "шоколдови бисвити"
     #search_input = "шоколадови бисквити"
     #search_input = "червенаябълка"
-
     #search_field = "name"
 
-    search_input = "паста"
+    # Multiple query inputs for the complex search
+    # with empty search_input
+    search_input = ""
     search_field = "name"
-    duration_range = (0, 300)
+    duration_range = (0, 100)
+    #facet_input["user_str"] = ["Габриеле"]
+    #facet_input["category"] = ["основ"]
+    #facet_input["duration"] = (50, 60)
  
     # Uses Solr to do a complex search into it's index
     results = complex_search(solr_url, collection_name, search_input, search_field,
@@ -948,6 +980,9 @@ def main():
     #category = "основно"
     #search_input = "ябълкови сандвичи"
     #category = "десерт"
+    search_input = "Телешки стек"
+    category = "основни"
+    #category = stem(category)
     #results_count = 5
     #more_like_this_recipe(solr_url, collection_name, search_input,
     #                      category)
