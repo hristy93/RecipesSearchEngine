@@ -16,7 +16,6 @@ JSON_FILENAME = "scrapy_crawler/scrapy_crawler/recipes.json"
 COLLECTION = "recipes_search_engine"
 
 
-# old
 def get_recipes_by_keyword(request, *args, **kwargs):
     # TODO: escape * and other symbols
     if not request.GET:
@@ -111,7 +110,6 @@ def home(request, *args, **kwargs):
     })
 
 
-# not used anymore
 def get_relevant_recipes(request, *args, **kwargs):
     if not request.GET:
         return JsonResponse({"recipes": []})

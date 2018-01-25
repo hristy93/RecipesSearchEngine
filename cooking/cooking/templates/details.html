@@ -44,7 +44,7 @@
             <li class="nav-item">
               <form @submit="search" class="form-inline my-2 my-lg-0 mr-lg-2">
                 <div class="input-group">
-                  <input v-model="keyword" class="form-control" type="text" placeholder="Потърси за...">
+                  <input v-model="keyword" class="form-control" type="text" placeholder="Потърси за..." @input="changeSearch">
                   <span class="input-group-append">
                     <button class="btn btn-primary" type="button" id="base-search" @click="search">
                       <i class="fa fa-search"></i>
@@ -333,6 +333,27 @@
             updateSearch: function (word, event) {
                 this.Skeyword = word;
                 return this.advancedSearch(event);
+            },
+            changeSearch: function (event) {
+                event.preventDefault();
+
+                if(this.keyword.length > 2) {
+                    // send get request
+                    $.get({
+                        url: "{% url 'search-suggestor' %}",
+                        type: "GET",
+                        data: {keyword: this.keyword}
+                    })
+                      .then(function (response) {
+                          if(response.recipes.length > 0) {
+                            app.recipes = response.recipes;
+                          }
+                      })
+                      .fail(function (error) {
+                        // handle error
+                        console.error(error);
+                    });
+                }
             }
         }
       });
