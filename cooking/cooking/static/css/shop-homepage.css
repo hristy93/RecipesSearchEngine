@@ -26,7 +26,7 @@ body {
     font-weight: bold;
 }
 
-#recipes img {
+#recipes img.small-image {
     height: 150px;
 }
 

@@ -65,9 +65,9 @@
 
         <div class="col-lg-3">
 
-          <h1 class="my-4">Категории</h1>
-          <div class="list-group btn-group" role="group" v-for="category in categories">
-            <button @click="searchByCategory( category, $event )" type="button" class="list-group-item btn btn-outline-primary">[category]</button>
+          <h3 class="my-4">Продукти</h3>
+          <div class="list-group list-group-flush" v-for="ingredient in currentRecipe.ingredients">
+            <p class="list-group-item">[ingredient]</p>
           </div>
 
         </div>
@@ -129,15 +129,6 @@
                     <option  v-for="user in users">[user]</option>
                   </select>
                 </div>
-                <!--
-                <div class="form-group col-md-4">
-                  <label for="inputDifficulty">Трудност</label>
-                  <select id="inputDifficulty" class="form-control">
-                    <option selected>Избери...</option>
-                    <option  v-for="diff in difficulties">[diff]</option>
-                  </select>
-                </div>
-                -->
               </div>
                 <!--
               <div class="form-group">
@@ -154,15 +145,49 @@
             </form>
           </div>
 
-          <div class="row my-4" id="recipes-holder">
 
+         <!-- BEGIN Single recipe -->
+            <div id="recipe-holder" class="my-4">
+              <h1>[ currentRecipe.name ]</h1>
+              <h4><span class="badge badge-pill badge-primary" v-for="cat in currentRecipe.categories">[cat]</span></h4>
+              <div class="row my-4" >
+                <div class="carousel slide">
+                    <div class="col-lg-12">
+                        <div class="carousel-inner" role="listbox">
+                          <div class="carousel-item active">
+                            <img class="d-block img-fluid" :src="currentRecipe.image_url" alt="First slide">
+                          </div>
+                        </div>
+                    </div>
+
+                </div>
+                  <div class="col-lg-12 col-md-12 mb-12">
+                    <div class="my-3">
+                        <h5>Време за приготвяне: <i class="fa fa-clock-o"></i> [currentRecipe.duration]мин.</h5>
+                    </div>
+                    <div class="my-4">
+                        <h3>Начин на приготвяне:</h3>
+                        <div class="content" v-for="intr in currentRecipe.instructions">
+                          <p v-html="intr"></p>
+                        </div>
+                        <div class="col-lg-12">
+                            <i class="my-3 float-right"><strong>Готвач: [ currentRecipe.user ]</strong></i>
+                        </div>
+                    </div>
+                </div>
+
+              </div>
+            </div>
+          <!-- END Single Recipe -->
+
+            <h3>Подобни рецепти</h3>
+            <div class="row my-4" id="recipes-holder">
             <div class="col-lg-4 col-md-6 mb-4" v-for="recipe in recipes">
               <div class="card h-100">
                 <a :href="'#' + recipe.id" id="'r' + recipe.id"><img class="card-img-top small-image" :src="recipe.image_url" alt=""></a>
                 <div class="card-body">
                   <h4 class="card-title">
-                    <!-- <a :href="'#' + recipe.id">[ recipe.name ]</a> -->
-                      <a :href="'/details/' + recipe.id" target="_blank">[ recipe.name ]</a>
+                    <a :href="'/details/' + recipe.id" target="_blank">[ recipe.name ]</a>
                   </h4>
                   <h5>[ recipe.duration ]мин.</h5>
                   <div v-for="category in recipe.categories">
@@ -175,15 +200,13 @@
               </div>
             </div>
 
-
-
               <div v-for="recipe in recipes">
 
                 <div :id="recipe.id" class="overlay">
                   <div class="popup">
                     <h2>[ recipe.name ]</h2>
                     <a class="close" :href="'#r' + recipe.id">&times;</a>
-                    <div class="content" v-for="intr in recipe.instructions">
+                    <div class="content" v-for="intr in recipe.ingredients">
                         <p v-html="intr"></p>
                     </div>
                   </div>
@@ -228,6 +251,7 @@
             users: {{ users|safe }},
             keyword: "",
             displayForm: false,
+            currentRecipe: {{ recipe|safe }},
 
             // advanced search field
             Skeyword: '',
