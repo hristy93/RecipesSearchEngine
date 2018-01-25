@@ -151,6 +151,12 @@
               </div>
               -->
               <button type="submit" class="btn btn-primary" @click="advancedSearch">Търси</button>
+                <div v-if="suggested_words.length" class="my-4">
+                    <p>Може би търсехте...</p>
+                    <div class="btn-group" role="group" aria-label="Basic example">
+                      <button type="button" @click="updateSearch(w, $event)" class="btn btn-primary" v-for="w in suggested_words">[w]</button>
+                    </div>
+                </div>
             </form>
           </div>
 
@@ -221,7 +227,7 @@
         delimiters: ["[", "]"],
         el: "#recipes",
         data: {
-            suggested_words: {"\u043f\u0438\u043b\u0435": ["\u043f\u043e\u043b\u0435", "\u043f\u0438\u043b", "\u043f\u0438\u043f\u0435\u0440", "\u043f\u043e\u043b\u0435\u0439", "\u043f\u0438\u043b\u0435\u0448\u043a", "\u043f\u044a\u043b\u043d", "\u043f\u043b\u0438\u043a", "\u043f\u0438\u043b\u0430\u0444", "\u043f\u0438\u043d\u0433", "\u043f\u0438\u0442\u043a"]},
+            suggested_words: {{ suggested_words|safe }},
             recipes: {{ recipes|safe }},
             categories: {{ categories|safe }},
             difficulties: {{ difficulties|safe }},
@@ -293,12 +299,16 @@
                   .then(function (response) {
                     console.log(response);
                     app.recipes = response.recipes;
-
+                    app.suggested_words = response.suggested_words;
                     })
                   .fail(function (error) {
                     // handle error
                     console.error(error);
                 });
+            },
+            updateSearch: function (word, event) {
+                this.Skeyword = word;
+                return this.advancedSearch(event);
             }
         }
       });

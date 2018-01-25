@@ -77,7 +77,7 @@ def get_complex_search_results(request, *args, **kwargs):
     recipes = Recipe.objects.filter(name__in=[t['name'] for t in recipes])
     return JsonResponse({
         "recipes": [serialize_recipe(r) for r in recipes],
-        "suggested_words": suggested_search_query_words,
+        "suggested_words": suggested_search_query_words.get(keyword, []),
         "suggested_queries": suggested_search_queries
     })
 
@@ -106,7 +106,8 @@ def home(request, *args, **kwargs):
         # "categories": sorted(list(categories['category_str'].keys())),
         "categories": sorted(categories.values()),
         "difficulties": sorted(difficulties),
-        "users": sorted(users)
+        "users": sorted(users),
+        "suggested_words": []
     })
 
 
@@ -135,5 +136,6 @@ def get_recipe_details(request, id):
         "recipes": [serialize_recipe(r) for r in recipes],
         "categories": [],
         "difficulties": [],
-        "users": []
+        "users": [],
+        "suggested_words": []
     })

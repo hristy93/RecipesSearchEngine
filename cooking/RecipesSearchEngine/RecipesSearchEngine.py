@@ -567,7 +567,7 @@ def complex_search(solr_url, collection_name, search_input, search_field,
     results_count = len(result.docs)
     spellcheck_data = result.data["spellcheck"]
 
-    suggested_search_query_words, suggested_search_queries = [], []
+    suggested_search_query_words, suggested_search_queries = {}, []
     if len(spellcheck_data["suggestions"]) != 0 and\
         len(spellcheck_data["collations"]) != 0:
         suggested_search_query_words, suggested_search_queries =\
