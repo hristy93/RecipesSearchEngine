@@ -115,6 +115,26 @@
                 </div>
               </div>
               <div class="form-row">
+
+                  <div class="col-md-4">
+
+                      <label for="byIngr">Търсене по:</label>
+
+                      <div class="form-check">
+                          <input class="form-check-input" type="radio" name="exampleRadios" id="exampleRadios1" :value=false v-model="SisIngredient" checked>
+                          <label class="form-check-label" for="exampleRadios1">
+                            име на рецепта
+                          </label>
+                      </div>
+                      <div class="form-check">
+                          <input class="form-check-input" type="radio" name="exampleRadios" id="exampleRadios2" :value=true v-model="SisIngredient">
+                          <label class="form-check-label" for="exampleRadios2">
+                            съставка
+                          </label>
+                      </div>
+                  </div>
+
+
                 <div class="form-group col-md-4">
                   <label for="inputDuration1">Време за приготвяне (мин)</label>
                   <div>
@@ -130,23 +150,6 @@
                   </select>
                 </div>
 
-                  <div class="col-md-4">
-
-                      <label for="byIngr">Търсене по:</label>
-
-                      <div class="form-check">
-                          <input class="form-check-input" type="radio" name="exampleRadios" id="exampleRadios1" value="option1" checked>
-                          <label class="form-check-label" for="exampleRadios1">
-                            име на рецепта
-                          </label>
-                      </div>
-                      <div class="form-check">
-                          <input class="form-check-input" type="radio" name="exampleRadios" id="exampleRadios2" value="option2">
-                          <label class="form-check-label" for="exampleRadios2">
-                            съставка
-                          </label>
-                      </div>
-                  </div>
 
 
                 <!--
@@ -314,6 +317,7 @@
                       category: this.Scategory,
                       user: this.Suser,
                       duration: [this.Sduration1, this.Sduration2],
+                      is_ingredient: this.SisIngredient
                       // difficulty: this.Sdifficulty
                     }
                 })
