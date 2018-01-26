@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
-from bulgarian_stemmer.bulstem import stem
+from RecipesSearchEngine.bulgarian_stemmer.bulstem import stem
 from RecipesSearchEngine.RecipesSearchEngine import (
     generate_search_suggestions, complex_search, solr_search_recipes_by_category,
     solr_single_term_search_by_field, solr_facet_search_recipe_category_by_field,

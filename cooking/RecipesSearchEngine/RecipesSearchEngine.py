@@ -25,7 +25,7 @@ import re
 # from scipy.spatial.distance import pdist
 # import matplotlib.pyplot as plt
 #from bulgarian_stemmer.bulgarian_stemmer import BulgarianStemmer
-from bulgarian_stemmer.bulstem import *
+#from bulgarian_stemmer.bulstem import *
 from SolrClient import SolrClient
 from transliterate import translit, get_available_language_codes
 

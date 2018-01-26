@@ -129,6 +129,26 @@
                     <option  v-for="user in users">[user]</option>
                   </select>
                 </div>
+
+                  <div class="col-md-4">
+
+                      <label for="byIngr">Търсене по:</label>
+
+                      <div class="form-check">
+                          <input class="form-check-input" type="radio" name="exampleRadios" id="exampleRadios1" value="option1" checked>
+                          <label class="form-check-label" for="exampleRadios1">
+                            име на рецепта
+                          </label>
+                      </div>
+                      <div class="form-check">
+                          <input class="form-check-input" type="radio" name="exampleRadios" id="exampleRadios2" value="option2">
+                          <label class="form-check-label" for="exampleRadios2">
+                            съставка
+                          </label>
+                      </div>
+                  </div>
+
+
                 <!--
                 <div class="form-group col-md-4">
                   <label for="inputDifficulty">Трудност</label>
@@ -242,6 +262,7 @@
             Sduration1: 0,
             Sduration2: 500,
             // Sdifficulty: 1.0
+            SisIngredient: false
         },
         methods: {
             search: function(event) {
