@@ -75,9 +75,11 @@ def get_complex_search_results(request, *args, **kwargs):
         facet_fields, facet_input, duration_range
     )
     recipes = Recipe.objects.filter(name__in=[t['name'] for t in recipes])
+    suggested_search_query_words.pop('or', None)
     return JsonResponse({
         "recipes": [serialize_recipe(r) for r in recipes],
-        "suggested_words": suggested_search_query_words.get(keyword, []),
+        # "suggested_words": suggested_search_query_words.get(keyword, []),
+        "suggested_words": suggested_search_query_words,
         "suggested_queries": suggested_search_queries
     })
 
@@ -107,7 +109,8 @@ def home(request, *args, **kwargs):
         "categories": sorted(categories.values()),
         "difficulties": sorted(difficulties),
         "users": sorted(users),
-        "suggested_words": []
+        "suggested_words": {},
+        "suggested_queries": []
     })
 
 
@@ -128,7 +131,7 @@ def get_recipe_details(request, id):
     search_input = recipe.name
     category = stem(recipe.category)
     recipes = more_like_this_recipe(
-        SOLR_URL, COLLECTION, search_input, category, results_count=6)
+        SOLR_URL, COLLECTION, search_input, category, results_count=9)
     recipes = Recipe.objects.filter(name__in=[t['name'] for t in recipes])
     return render(request, "details.html", {
         "recipe": serialize_recipe(recipe),
@@ -136,5 +139,6 @@ def get_recipe_details(request, id):
         "categories": [],
         "difficulties": [],
         "users": [],
-        "suggested_words": []
+        "suggested_words": {},
+        "suggested_queries": []
     })

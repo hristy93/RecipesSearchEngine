@@ -115,6 +115,25 @@
                 </div>
               </div>
               <div class="form-row">
+
+                 <div class="col-md-4">
+
+                      <label for="byIngr">Търсене по:</label>
+
+                      <div class="form-check">
+                          <input class="form-check-input" type="radio" name="exampleRadios" id="exampleRadios1" :value=false v-model="SisIngredient" checked>
+                          <label class="form-check-label" for="exampleRadios1">
+                            име на рецепта
+                          </label>
+                      </div>
+                      <div class="form-check">
+                          <input class="form-check-input" type="radio" name="exampleRadios" id="exampleRadios2" :value=true v-model="SisIngredient">
+                          <label class="form-check-label" for="exampleRadios2">
+                            съставка
+                          </label>
+                      </div>
+                  </div>
+
                 <div class="form-group col-md-4">
                   <label for="inputDuration1">Време за приготвяне (мин)</label>
                   <div>
@@ -142,11 +161,15 @@
               </div>
               -->
               <button type="submit" class="btn btn-primary" @click="advancedSearch">Търси</button>
-                <div v-if="suggested_words.length" class="my-4">
+                <div v-if="Object.keys(suggested_words).length" class="my-4">
                     <p>Може би търсехте...</p>
-                    <div class="btn-group" role="group" aria-label="Basic example">
-                      <button type="button" @click="updateSearch(w, $event)" class="btn btn-primary" v-for="w in suggested_words">[w]</button>
-                    </div>
+                    <button type="button" @click="updateSearch(q, $event)" class="btn btn-success my-1 suggestions" v-for="q in suggested_queries"> [q]</button>
+                    <template v-for="(value, key) in suggested_words">
+                        <div role="group" aria-label="Basic example"  class="my-4">
+                            <p>[key]</p>
+                            <button type="button" @click="updateSearch(v, $event)" class="btn btn-primary my-1 suggestions" v-for="v in value"> [v]</button>
+                        </div>
+                    </template>
                 </div>
             </form>
           </div>
@@ -186,6 +209,7 @@
             </div>
           <!-- END Single Recipe -->
 
+            <hr>
             <h3>Подобни рецепти</h3>
             <div class="row my-4" id="recipes-holder">
             <div class="col-lg-4 col-md-6 mb-4" v-for="recipe in recipes">
@@ -250,6 +274,7 @@
         delimiters: ["[", "]"],
         el: "#recipes",
         data: {
+            suggested_queries: {{ suggested_queries|safe }},
             suggested_words: {{ suggested_words|safe }},
             recipes: {{ recipes|slice:":9"|safe }},
             categories: {{ categories|safe }},
@@ -266,6 +291,7 @@
             Sduration1: 0,
             Sduration2: 500,
             // Sdifficulty: 1.0
+            SisIngredient: false
         },
         methods: {
             search: function(event) {
@@ -296,7 +322,6 @@
                     data: {category: category}
                 })
                   .then(function (response) {
-                    console.log(response);
                     app.recipes = response.recipes;
 
                     })
@@ -317,13 +342,14 @@
                       category: this.Scategory,
                       user: this.Suser,
                       duration: [this.Sduration1, this.Sduration2],
+                      SisIngredient: false
                       // difficulty: this.Sdifficulty
                     }
                 })
                   .then(function (response) {
-                    console.log(response);
                     app.recipes = response.recipes;
                     app.suggested_words = response.suggested_words;
+                    app.suggested_queries = response.suggested_queries;
                     })
                   .fail(function (error) {
                     // handle error

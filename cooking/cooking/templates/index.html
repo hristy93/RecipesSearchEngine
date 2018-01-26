@@ -174,11 +174,15 @@
               </div>
               -->
               <button type="submit" class="btn btn-primary" @click="advancedSearch">Търси</button>
-                <div v-if="suggested_words.length" class="my-4">
+                <div v-if="Object.keys(suggested_words).length" class="my-4">
                     <p>Може би търсехте...</p>
-                    <div class="btn-group" role="group" aria-label="Basic example">
-                      <button type="button" @click="updateSearch(w, $event)" class="btn btn-primary" v-for="w in suggested_words">[w]</button>
-                    </div>
+                    <button type="button" @click="updateSearch(q, $event)" class="btn btn-success my-1 suggestions" v-for="q in suggested_queries"> [q]</button>
+                    <template v-for="(value, key) in suggested_words">
+                        <div role="group" aria-label="Basic example"  class="my-4">
+                            <p>[key]</p>
+                            <button type="button" @click="updateSearch(v, $event)" class="btn btn-primary my-1 suggestions" v-for="v in value"> [v]</button>
+                        </div>
+                    </template>
                 </div>
             </form>
           </div>
@@ -250,6 +254,7 @@
         delimiters: ["[", "]"],
         el: "#recipes",
         data: {
+            suggested_queries: {{ suggested_queries|safe }},
             suggested_words: {{ suggested_words|safe }},
             recipes: {{ recipes|safe }},
             categories: {{ categories|safe }},
@@ -296,7 +301,6 @@
                     data: {category: category}
                 })
                   .then(function (response) {
-                    console.log(response);
                     app.recipes = response.recipes;
 
                     })
@@ -322,9 +326,9 @@
                     }
                 })
                   .then(function (response) {
-                    console.log(response);
                     app.recipes = response.recipes;
                     app.suggested_words = response.suggested_words;
+                    app.suggested_queries = response.suggested_queries;
                     })
                   .fail(function (error) {
                     // handle error

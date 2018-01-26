@@ -76,6 +76,10 @@ body {
   display: inline;
 }
 
+.suggestions {
+  margin-right: 5px;
+}
+
 .button {
   font-size: 1em;
   padding: 10px;

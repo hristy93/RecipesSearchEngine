@@ -29,6 +29,8 @@ import re
 from SolrClient import SolrClient
 from transliterate import translit, get_available_language_codes
 
+QUERY_RESULTS = 50
+
 
 def enable_win_unicode_console():
     try:
@@ -518,6 +520,7 @@ def complex_search(solr_url, collection_name, search_input, search_field,
 
     query_body = dict()
     query_body['q'] = query
+    query_body['rows'] = QUERY_RESULTS
 
     # Sets the facets to true if there are 
     #if len(facet_fields) != 0:
@@ -591,7 +594,7 @@ def complex_search(solr_url, collection_name, search_input, search_field,
     if "spellcheck" in result.data.keys():
         spellcheck_data = result.data["spellcheck"]
 
-        if len(spellcheck_data["suggestions"]) != 0 and\
+        if len(spellcheck_data["suggestions"]) != 0 or \
             len(spellcheck_data["collations"]) != 0:
             suggested_search_query_words, suggested_search_queries =\
                get_spellchecker_suggestions(solr_url,
@@ -599,7 +602,12 @@ def complex_search(solr_url, collection_name, search_input, search_field,
                                             search_input,
                                             search_field,
                                             spellcheck_data)
-            return suggested_search_query_words, suggested_search_queries
+            if not suggested_search_queries:
+                suggested_search_query_words.pop('or', None)
+                suggested_search_queries = [",".join([s[0] for s in suggested_search_query_words.values()])]
+            else:
+                suggested_search_queries = list(set([re.sub('[^\w+|\s]', '', s.split('*')[0]) for s in suggested_search_queries]))
+            return result.docs, suggested_search_query_words, suggested_search_queries
 
             #if not suggested_search_query_words and not suggested_search_queries:
             #    spitted_search_input = search_input.split(" ")
