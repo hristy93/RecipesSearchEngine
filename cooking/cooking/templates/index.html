@@ -342,7 +342,7 @@
             changeSearch: function (event) {
                 event.preventDefault();
 
-                if(this.keyword.length > 2) {
+                if(this.keyword.length > 2 || this.keyword.length === 0) {
                     // send get request
                     $.get({
                         url: "{% url 'search-suggestor' %}",

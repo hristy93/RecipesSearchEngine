@@ -6,7 +6,7 @@ from RecipesSearchEngine.RecipesSearchEngine import (
     generate_search_suggestions, complex_search, solr_search_recipes_by_category,
     solr_single_term_search_by_field, solr_facet_search_recipe_category_by_field,
     more_like_this_recipe)
-from .utils import serialize_recipe, read_json
+from .utils import serialize_recipe, read_json, get_default_response
 from .models import Recipe
 
 
@@ -18,8 +18,8 @@ COLLECTION = "recipes_search_engine"
 
 def get_recipes_by_keyword(request, *args, **kwargs):
     # TODO: escape * and other symbols
-    if not request.GET:
-        return JsonResponse({"recipes": []})
+    if not(request.GET and request.GET.get("keyword")):
+        return get_default_response()
     keyword = request.GET.get("keyword")
     search_field = request.GET.get("field", "name")
     found, titles = generate_search_suggestions(
@@ -33,8 +33,8 @@ def get_recipes_by_keyword(request, *args, **kwargs):
 
 def search_recipes_by_keyword(request, *args, **kwargs):
     # TODO: escape * and other symbols
-    if not request.GET:
-        return JsonResponse({"recipes": []})
+    if not(request.GET and request.GET.get("keyword")):
+        return get_default_response()
     keyword = request.GET.get("keyword")
     search_field = request.GET.get("field", "name")
     titles = solr_single_term_search_by_field(

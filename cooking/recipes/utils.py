@@ -1,4 +1,5 @@
 import json
+from django.http import JsonResponse
 from .models import Ingredient, Recipe
 
 
@@ -61,3 +62,9 @@ def fill_in_db_from_json(filename):
             print(i)
             print(rec)
             continue
+
+
+def get_default_response():
+    return JsonResponse({
+        "recipes": [serialize_recipe(r) for r in Recipe.objects.all()[:100]]
+    })
