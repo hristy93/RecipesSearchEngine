@@ -25,6 +25,7 @@ def get_recipes_by_keyword(request, *args, **kwargs):
     found, titles = generate_search_suggestions(
         SOLR_URL, COLLECTION, keyword, search_field)
     recipes = Recipe.objects.filter(name__in=titles)
+    recipes = sorted(recipes, key=lambda x: titles.index(x.name))
     recipes = [serialize_recipe(r) for r in recipes]
     return JsonResponse({
         "recipes": recipes,
@@ -40,6 +41,7 @@ def search_recipes_by_keyword(request, *args, **kwargs):
     titles = solr_single_term_search_by_field(
         SOLR_URL, COLLECTION, keyword, search_field)
     recipes = Recipe.objects.filter(name__in=titles)
+    recipes = sorted(recipes, key=lambda x: titles.index(x.name))
     return JsonResponse({"recipes": [serialize_recipe(r) for r in recipes]})
 
 
@@ -74,7 +76,9 @@ def get_complex_search_results(request, *args, **kwargs):
         SOLR_URL, COLLECTION, keyword, search_field,
         facet_fields, facet_input, duration_range
     )
-    recipes = Recipe.objects.filter(name__in=[t['name'] for t in recipes])
+    titles = [t['name'] for t in recipes]
+    recipes = Recipe.objects.filter(name__in=titles)
+    recipes = sorted(recipes, key=lambda x: titles.index(x.name))
     suggested_search_query_words.pop('or', None)
     return JsonResponse({
         "recipes": [serialize_recipe(r) for r in recipes],
@@ -132,7 +136,9 @@ def get_recipe_details(request, id):
     category = stem(recipe.category)
     recipes = more_like_this_recipe(
         SOLR_URL, COLLECTION, search_input, category, results_count=9)
-    recipes = Recipe.objects.filter(name__in=[t['name'] for t in recipes])
+    titles = [t['name'] for t in recipes]
+    recipes = Recipe.objects.filter(name__in=titles)
+    recipes = sorted(recipes, key=lambda x: titles.index(x.name))
     return render(request, "details.html", {
         "recipe": serialize_recipe(recipe),
         "recipes": [serialize_recipe(r) for r in recipes],

@@ -847,7 +847,7 @@ def more_like_this_recipe(solr_url, collection_name, search_input,
     result = solr.query(collection_name, {
         'q': query,
         'fl': "name, score",
-        'fq': "category_str:{0}".format(stem(category))
+        'fq': "category_str:\"{0}\"".format(stem(category))
     }, "mlt")
 
     result_data = result.data
@@ -869,7 +869,8 @@ def solr_search_recipes_by_category(solr_url, collection_name, search_input,
     query = "{0}_str:\"{1}\"".format(field, stem_value)
     result = solr.query(collection_name, {
         'q': query,
-        'fl': search_field
+        'fl': search_field,
+        'rows': QUERY_RESULTS
     })
 
     print("  Found top {0} results:".format(len(result.docs)))
