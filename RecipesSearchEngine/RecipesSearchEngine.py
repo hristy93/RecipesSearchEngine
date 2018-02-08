@@ -443,11 +443,11 @@ def preprocess_search_input(search_input, search_field):
 
     # Preprocesses the serach input if the search is it is a boolean query
     # with AND - 'и' and/or OR - 'или'
-    if search_field == 'ingedeients.name' and ' и ' in search_input or ' или ' in search_input or\
-        ',' in search_input:
+    if search_field == 'ingredients.name' and (' и ' in search_input or ' или ' in search_input or\
+        ',' in search_input):
        search_input = search_input.lower()
        search_input = re.sub('\s*,\s*', ' AND ', search_input)
-       earch_input = re.sub(' или ', ' OR ', search_input)
+       search_input = re.sub(' или ', ' OR ', search_input)
        search_input = re.sub(' и ', ' AND ', search_input)
        search_input_splitted = search_input.split(' ')
        search_input = " ".join(["*{}*".format(stem(item)) for item in search_input_splitted])
@@ -514,6 +514,7 @@ def complex_search(solr_url, collection_name, search_input, search_field,
 
     query_body = dict()
     query_body['q'] = query
+    query_body['rows'] = 100
 
     # Sets the facets to true if there are 
     #if len(facet_fields) != 0:
@@ -587,7 +588,7 @@ def complex_search(solr_url, collection_name, search_input, search_field,
     if "spellcheck" in result.data.keys():
         spellcheck_data = result.data["spellcheck"]
 
-        if len(spellcheck_data["suggestions"]) != 0 and\
+        if len(spellcheck_data["suggestions"]) != 0 or \
             len(spellcheck_data["collations"]) != 0:
             suggested_search_query_words, suggested_search_queries =\
                get_spellchecker_suggestions(solr_url,
@@ -734,7 +735,7 @@ def get_spellchecker_suggestions(solr_url, collection_name, search_input,
     suggested_search_query_words = dict()
     for key, values in suggested_search_query_words_info.items():
         print("  Found {0} results for {1}:".format(len(values), key))
-        suggested_search_query_words[key] = [value["word"] for value in values]
+        suggested_search_query_words[key] = [value["word"] for value in values if value not in ["or", "and"]]
         print("    {}".format(suggested_search_query_words[key]))
 
     print("Getting the suggestions about the misspelled query " +\
@@ -746,7 +747,7 @@ def get_spellchecker_suggestions(solr_url, collection_name, search_input,
     for suggested_search_query_info in suggested_search_queries_info:
         if isinstance(suggested_search_query_info, dict):
             raw_query = suggested_search_query_info["collationQuery"]
-            query = raw_query[len(search_field) + 2:-1].lstrip("(").rstrip(")")
+            query = raw_query[len(search_field) + 2:-1].strip("(").strip(")").strip("name:").strip("or").strip("and")
             suggested_search_queries.append(query)
             print("    {}".format(query))
 
@@ -835,7 +836,7 @@ def more_like_this_recipe(solr_url, collection_name, search_input,
     result = solr.query(collection_name, {
         'q': query,
         'fl': "name, score",
-        'fq': "category_str:{0}".format(stem(category))
+        'fq': "category_str:\"{0}\"".format(stem(category))
     }, "mlt")
 
     result_data = result.data
