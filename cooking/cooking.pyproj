@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+  <PropertyGroup>
+    <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
+    <Name>cooking</Name>
+    <RootNamespace>cooking</RootNamespace>
+    <InterpreterId>MSBuild|env|$(MSBuildProjectFullPath)</InterpreterId>
+  </PropertyGroup>
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>3b187e84-abdf-4810-bb1d-e55466d114c8</ProjectGuid>
+    <ProjectHome>.</ProjectHome>
+    <ProjectTypeGuids>{5F0BE9CA-D677-4A4D-8806-6076C0FAAD37};{349c5851-65df-11da-9384-00065b846f21};{888888a0-9f3d-457c-b088-3a5042f75d52}</ProjectTypeGuids>
+    <StartupFile>manage.py</StartupFile>
+    <SearchPath>
+    </SearchPath>
+    <WorkingDirectory>.</WorkingDirectory>
+    <WebBrowserUrl>http://localhost</WebBrowserUrl>
+    <LaunchProvider>Django launcher</LaunchProvider>
+    <DjangoSettingsModule>cooking.settings</DjangoSettingsModule>
+    <OutputPath>.</OutputPath>
+    <SuppressCollectPythonCloudServiceFiles>true</SuppressCollectPythonCloudServiceFiles>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="manage.py" />
+    <Compile Include="cooking\__init__.py" />
+    <Compile Include="cooking\settings.py" />
+    <Compile Include="cooking\urls.py" />
+    <Compile Include="cooking\wsgi.py" />
+    <Compile Include="RecipesSearchEngine\bulgarian_stemmer\bulgarian_stemmer.py" />
+    <Compile Include="RecipesSearchEngine\bulgarian_stemmer\bulstem.py" />
+    <Compile Include="RecipesSearchEngine\bulgarian_stemmer\__init__.py" />
+    <Compile Include="RecipesSearchEngine\exercise_help.py" />
+    <Compile Include="RecipesSearchEngine\RecipesSearchEngine.py" />
+    <Compile Include="RecipesSearchEngine\scrapy_crawler\scrapy_crawler\items.py" />
+    <Compile Include="RecipesSearchEngine\scrapy_crawler\scrapy_crawler\middlewares.py" />
+    <Compile Include="RecipesSearchEngine\scrapy_crawler\scrapy_crawler\pipelines.py" />
+    <Compile Include="RecipesSearchEngine\scrapy_crawler\scrapy_crawler\settings.py" />
+    <Compile Include="RecipesSearchEngine\scrapy_crawler\scrapy_crawler\spiders\RecipesSpider.py" />
+    <Compile Include="RecipesSearchEngine\scrapy_crawler\scrapy_crawler\spiders\__init__.py" />
+    <Compile Include="RecipesSearchEngine\scrapy_crawler\scrapy_crawler\__init__.py" />
+    <Compile Include="RecipesSearchEngine\__init__.py" />
+    <Compile Include="recipes\admin.py" />
+    <Compile Include="recipes\apps.py" />
+    <Compile Include="recipes\forms.py" />
+    <Compile Include="recipes\migrations\0001_initial.py" />
+    <Compile Include="recipes\migrations\0002_recipe_ingredients.py" />
+    <Compile Include="recipes\migrations\__init__.py" />
+    <Compile Include="recipes\models.py" />
+    <Compile Include="recipes\tests.py" />
+    <Compile Include="recipes\urls.py" />
+    <Compile Include="recipes\utils.py" />
+    <Compile Include="recipes\views.py" />
+    <Compile Include="recipes\__init__.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="cooking\" />
+    <Folder Include="RecipesSearchEngine\" />
+    <Folder Include="RecipesSearchEngine\bulgarian_stemmer\" />
+    <Folder Include="RecipesSearchEngine\bulgarian_stemmer\__pycache__\" />
+    <Folder Include="RecipesSearchEngine\scrapy_crawler\" />
+    <Folder Include="RecipesSearchEngine\scrapy_crawler\scrapy_crawler\" />
+    <Folder Include="RecipesSearchEngine\scrapy_crawler\scrapy_crawler\spiders\" />
+    <Folder Include="RecipesSearchEngine\__pycache__\" />
+    <Folder Include="recipes\" />
+    <Folder Include="recipes\migrations\" />
+    <Folder Include="recipes\migrations\__pycache__\" />
+    <Folder Include="recipes\static\" />
+    <Folder Include="recipes\static\app\" />
+    <Folder Include="recipes\static\app\content\" />
+    <Folder Include="recipes\static\app\fonts\" />
+    <Folder Include="recipes\static\app\scripts\" />
+    <Folder Include="recipes\templates\" />
+    <Folder Include="recipes\templates\app\" />
+    <Folder Include="recipes\__pycache__\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="RecipesSearchEngine\bulgarian_stemmer\StemmingRules-MinFreq-2.pickle" />
+    <Content Include="RecipesSearchEngine\bulgarian_stemmer\stem_rules_context_1.pkl" />
+    <Content Include="RecipesSearchEngine\bulgarian_stemmer\stem_rules_context_1.txt" />
+    <Content Include="RecipesSearchEngine\bulgarian_stemmer\stem_rules_context_2.pkl" />
+    <Content Include="RecipesSearchEngine\bulgarian_stemmer\stem_rules_context_2.txt" />
+    <Content Include="RecipesSearchEngine\bulgarian_stemmer\stem_rules_context_2_UTF-8.txt" />
+    <Content Include="RecipesSearchEngine\bulgarian_stemmer\stem_rules_context_3.pkl" />
+    <Content Include="RecipesSearchEngine\bulgarian_stemmer\stem_rules_context_3.txt" />
+    <Content Include="RecipesSearchEngine\bulgarian_stemmer\__pycache__\bulgarian_stemmer.cpython-35.pyc" />
+    <Content Include="RecipesSearchEngine\bulgarian_stemmer\__pycache__\bulstem.cpython-35.pyc" />
+    <Content Include="RecipesSearchEngine\bulgarian_stemmer\__pycache__\__init__.cpython-35.pyc" />
+    <Content Include="RecipesSearchEngine\recipes.json" />
+    <Content Include="RecipesSearchEngine\RecipesSearchEngine.pyproj" />
+    <Content Include="RecipesSearchEngine\recipes_500_refined_edited.json" />
+    <Content Include="RecipesSearchEngine\recipes_preprocessed.json" />
+    <Content Include="RecipesSearchEngine\scrapy_crawler\scrapy.cfg" />
+    <Content Include="RecipesSearchEngine\scrapy_crawler\scrapy_crawler\recipes.json" />
+    <Content Include="RecipesSearchEngine\scrapy_crawler\scrapy_crawler\recipes_new.json" />
+    <Content Include="RecipesSearchEngine\scrapy_crawler\scrapy_crawler\scrapy_crawler - Shortcut.lnk" />
+    <Content Include="RecipesSearchEngine\__pycache__\RecipesSearchEngine.cpython-35.pyc" />
+    <Content Include="RecipesSearchEngine\__pycache__\__init__.cpython-35.pyc" />
+    <Content Include="recipes\migrations\__pycache__\0001_initial.cpython-35.pyc" />
+    <Content Include="recipes\migrations\__pycache__\0002_recipe_ingredients.cpython-35.pyc" />
+    <Content Include="recipes\migrations\__pycache__\__init__.cpython-35.pyc" />
+    <Content Include="recipes\static\app\content\bootstrap.css" />
+    <Content Include="recipes\static\app\content\bootstrap.min.css" />
+    <Content Include="recipes\static\app\content\site.css" />
+    <Content Include="recipes\static\app\fonts\glyphicons-halflings-regular.eot" />
+    <Content Include="recipes\static\app\fonts\glyphicons-halflings-regular.svg" />
+    <Content Include="recipes\static\app\fonts\glyphicons-halflings-regular.ttf" />
+    <Content Include="recipes\static\app\fonts\glyphicons-halflings-regular.woff" />
+    <None Include="recipes\static\app\scripts\_references.js" />
+    <Content Include="recipes\static\app\scripts\bootstrap.js" />
+    <Content Include="recipes\static\app\scripts\bootstrap.min.js" />
+    <None Include="recipes\static\app\scripts\jquery.validate-vsdoc.js" />
+    <None Include="recipes\static\app\scripts\jquery-1.10.2.intellisense.js" />
+    <Content Include="recipes\static\app\scripts\jquery-1.10.2.js" />
+    <Content Include="recipes\static\app\scripts\jquery-1.10.2.min.js" />
+    <Content Include="recipes\static\app\scripts\jquery-1.10.2.min.map" />
+    <Content Include="recipes\static\app\scripts\jquery.validate.js" />
+    <Content Include="recipes\static\app\scripts\jquery.validate.min.js" />
+    <Content Include="recipes\static\app\scripts\jquery.validate.unobtrusive.js" />
+    <Content Include="recipes\static\app\scripts\jquery.validate.unobtrusive.min.js" />
+    <Content Include="recipes\static\app\scripts\modernizr-2.6.2.js" />
+    <Content Include="recipes\static\app\scripts\respond.js" />
+    <Content Include="recipes\static\app\scripts\respond.min.js" />
+    <Content Include="recipes\templates\app\about.html" />
+    <Content Include="recipes\templates\app\contact.html" />
+    <Content Include="recipes\templates\app\index.html" />
+    <Content Include="recipes\templates\app\layout.html" />
+    <Content Include="recipes\templates\app\login.html" />
+    <Content Include="recipes\templates\app\loginpartial.html" />
+    <Content Include="recipes\__pycache__\admin.cpython-35.pyc" />
+    <Content Include="recipes\__pycache__\models.cpython-35.pyc" />
+    <Content Include="recipes\__pycache__\urls.cpython-35.pyc" />
+    <Content Include="recipes\__pycache__\utils.cpython-35.pyc" />
+    <Content Include="recipes\__pycache__\views.cpython-35.pyc" />
+    <Content Include="recipes\__pycache__\__init__.cpython-35.pyc" />
+    <Content Include="requirements.txt" />
+    <Content Include="db.sqlite3" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="readme.html">
+      <SubType>WebBrowser</SubType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Interpreter Include="env\">
+      <Id>env</Id>
+      <Version>3.5</Version>
+      <Description>env (Python 3.5 (64-bit))</Description>
+      <InterpreterPath>Scripts\python.exe</InterpreterPath>
+      <WindowsInterpreterPath>Scripts\pythonw.exe</WindowsInterpreterPath>
+      <PathEnvironmentVariable>PYTHONPATH</PathEnvironmentVariable>
+      <Architecture>X64</Architecture>
+    </Interpreter>
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.Django.targets" />
+  <!-- Specify pre- and post-build commands in the BeforeBuild and 
+       AfterBuild targets below. -->
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  <ProjectExtensions>
+    <VisualStudio>
+      <FlavorProperties GUID="{349c5851-65df-11da-9384-00065b846f21}">
+        <WebProjectProperties>
+          <AutoAssignPort>True</AutoAssignPort>
+          <UseCustomServer>True</UseCustomServer>
+          <CustomServerUrl>http://localhost</CustomServerUrl>
+          <SaveServerSettingsInUserFile>False</SaveServerSettingsInUserFile>
+        </WebProjectProperties>
+      </FlavorProperties>
+      <FlavorProperties GUID="{349c5851-65df-11da-9384-00065b846f21}" User="">
+        <WebProjectProperties>
+          <StartPageUrl>
+          </StartPageUrl>
+          <StartAction>CurrentPage</StartAction>
+          <AspNetDebugging>True</AspNetDebugging>
+          <SilverlightDebugging>False</SilverlightDebugging>
+          <NativeDebugging>False</NativeDebugging>
+          <SQLDebugging>False</SQLDebugging>
+          <ExternalProgram>
+          </ExternalProgram>
+          <StartExternalURL>
+          </StartExternalURL>
+          <StartCmdLineArguments>
+          </StartCmdLineArguments>
+          <StartWorkingDirectory>
+          </StartWorkingDirectory>
+          <EnableENC>False</EnableENC>
+          <AlwaysStartWebServerOnDebug>False</AlwaysStartWebServerOnDebug>
+        </WebProjectProperties>
+      </FlavorProperties>
+    </VisualStudio>
+  </ProjectExtensions>
+</Project>
