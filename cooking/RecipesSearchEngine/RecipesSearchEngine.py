@@ -25,9 +25,11 @@ import re
 # from scipy.spatial.distance import pdist
 # import matplotlib.pyplot as plt
 #from bulgarian_stemmer.bulgarian_stemmer import BulgarianStemmer
-from bulgarian_stemmer.bulstem import *
+#from bulgarian_stemmer.bulstem import *
 from SolrClient import SolrClient
 from transliterate import translit, get_available_language_codes
+
+QUERY_RESULTS = 50
 
 
 def enable_win_unicode_console():
@@ -51,7 +53,7 @@ def read_json(json_file_name):
     return data
 
 
-def preprocess_ingredients(data, common_ingredients, processing_ingredients, 
+def preprocess_ingredients(data, common_ingredients, processing_ingredients,
                            write_back_ingredients):
     """ Prepocesses the ingredients from the json data """
     print("Preprocessing the recipes' ingredients ...")
@@ -90,7 +92,7 @@ def preprocess_ingredients(data, common_ingredients, processing_ingredients,
                 #        unwanted_words_count += 1
                 #        temp_ingredient = stemmed_ingredient
                 #        re.sub(unwanted_word, "", stemmed_ingredient)
-                        #print("Removed {0} from {1}".format(unwanted_word, 
+                        #print("Removed {0} from {1}".format(unwanted_word,
                         #                                    temp_ingredient))
 
                 # Adds the ingredients to the corresponding lists
@@ -159,6 +161,7 @@ def preprocess_categories(data, write_back_categories):
     categories = set()
     stemmed_categories = set()
     unfiltered_recipes = {}
+    all_categories = {}
 
     similar_categories = {
         "супи": "суп",
@@ -168,6 +171,7 @@ def preprocess_categories(data, write_back_categories):
     for category, stemmed_category in similar_categories.items():
         categories.add(category)
         stemmed_categories.add(stemmed_category)
+        all_categories[stemmed_category] = category
 
     for index, recipe in enumerate(data):
         # Replaces an unkonwn recipe category with "други"
@@ -180,9 +184,9 @@ def preprocess_categories(data, write_back_categories):
             unfiltered_recipes[" ".join(splitted_category)] = index
             continue
 
-        categories, stemmed_categories = preprocess_recipe_categories(
+        categories, stemmed_categories, all_categories = preprocess_recipe_categories(
             recipe, categories, stemmed_categories, similar_categories,
-            write_back_categories)
+            write_back_categories, all_categories)
 
     for complex_category, recipe_index in unfiltered_recipes.items():
         simple_categories = complex_category.split()
@@ -192,21 +196,23 @@ def preprocess_categories(data, write_back_categories):
         else:
             data[recipe_index]["category"] = next(iter(common))
 
-        categories, stemmed_categories = preprocess_recipe_categories(
+        categories, stemmed_categories, all_categories = preprocess_recipe_categories(
             data[recipe_index], categories, stemmed_categories,
-            similar_categories, write_back_categories)
+            similar_categories, write_back_categories, all_categories)
 
     print("  Stemmed {0} categories from {1}".format(len(stemmed_categories), len(categories)))
     print("    Stemmed categories", stemmed_categories)
+    save_preprocessed_data_to_json('categories_map', all_categories)
     return categories, stemmed_categories
 
 
-def preprocess_recipe_categories(recipe, categories, stemmed_categories, similar_categories, write_back_categories):
+def preprocess_recipe_categories(recipe, categories, stemmed_categories, similar_categories, write_back_categories, all_categories):
     categories.add(recipe["category"])
 
     # Stemms the category
     stemm_category = stem(recipe["category"])
     # print(recipe["category"], "->", stemm_category)
+    all_categories[stemm_category] = recipe["category"]
 
     if write_back_categories:
         recipe["category"] = stemm_category
@@ -214,7 +220,7 @@ def preprocess_recipe_categories(recipe, categories, stemmed_categories, similar
     if recipe["category"] not in similar_categories.keys():
         stemmed_categories.add(stemm_category)
 
-    return categories, stemmed_categories
+    return categories, stemmed_categories, all_categories
 
 
 def process_data(data, ingredients, ingredient_data, ingredients_count_info):
@@ -277,7 +283,7 @@ def solr_single_term_search_by_field(solr_url, collection_name,
     #for docs in result.docs:
     #    print(docs['name'])
 
-    return result.docs
+    return [doc["name"] for doc in result.docs]
 
 
 def solr_phrase_search_by_field(solr_url, collection_name,
@@ -406,12 +412,12 @@ def preprocess_data(data, common_ingredients, processing_ingredients,
     """ Preprocesses the data from the JSON file """
     # Preprocesses the ingredients
     ingredients, stemmed_ingredients, common_ingredients_count =\
-       preprocess_ingredients(data, common_ingredients, processing_ingredients, 
+       preprocess_ingredients(data, common_ingredients, processing_ingredients,
                               write_back_ingredients)
 
     # Preprocesses the categories
     categories, stemmed_categories = preprocess_categories(data, write_back_categories)
-                                                    
+
         
     return (ingredients, stemmed_ingredients, categories,
             stemmed_categories, common_ingredients_count)
@@ -500,7 +506,7 @@ def complex_search(solr_url, collection_name, search_input, search_field,
     elif use_phrase:
         query = "{0}:*{1}* or {0}:\"{1}\"^{2}".format(search_field, search_input,
                                                    recipe_name_boost_factor)
-  
+
     else:
         query = "{0}:*{1}*".format(search_field, search_input)
 
@@ -514,7 +520,7 @@ def complex_search(solr_url, collection_name, search_input, search_field,
 
     query_body = dict()
     query_body['q'] = query
-    query_body['rows'] = 100
+    query_body['rows'] = QUERY_RESULTS
 
     # Sets the facets to true if there are 
     #if len(facet_fields) != 0:
@@ -584,7 +590,7 @@ def complex_search(solr_url, collection_name, search_input, search_field,
     print("url: ", url, "\n")
 
     results_count = len(result.docs)
-
+    suggested_search_query_words, suggested_search_queries = {}, []
     if "spellcheck" in result.data.keys():
         spellcheck_data = result.data["spellcheck"]
 
@@ -596,7 +602,12 @@ def complex_search(solr_url, collection_name, search_input, search_field,
                                             search_input,
                                             search_field,
                                             spellcheck_data)
-            return suggested_search_query_words, suggested_search_queries
+            if not suggested_search_queries:
+                suggested_search_query_words.pop('or', None)
+                suggested_search_queries = [",".join([s[0] for s in suggested_search_query_words.values()])]
+            else:
+                suggested_search_queries = list(set([re.sub('[^\w+|\s]', '', s.split('*')[0]) for s in suggested_search_queries]))
+            return result.docs, suggested_search_query_words, suggested_search_queries
 
             #if not suggested_search_query_words and not suggested_search_queries:
             #    spitted_search_input = search_input.split(" ")
@@ -628,7 +639,7 @@ def complex_search(solr_url, collection_name, search_input, search_field,
         for docs in result.docs:
             print("  {}".format(docs['name']))
 
-    return result.docs
+    return result.docs, suggested_search_query_words, suggested_search_queries
 
 
 def delete_all_documents_in_solr(solr_url, collection_name):
@@ -735,7 +746,7 @@ def get_spellchecker_suggestions(solr_url, collection_name, search_input,
     suggested_search_query_words = dict()
     for key, values in suggested_search_query_words_info.items():
         print("  Found {0} results for {1}:".format(len(values), key))
-        suggested_search_query_words[key] = [value["word"] for value in values if value not in ["or", "and"]]
+        suggested_search_query_words[key] = [value["word"] for value in values]
         print("    {}".format(suggested_search_query_words[key]))
 
     print("Getting the suggestions about the misspelled query " +\
@@ -747,7 +758,7 @@ def get_spellchecker_suggestions(solr_url, collection_name, search_input,
     for suggested_search_query_info in suggested_search_queries_info:
         if isinstance(suggested_search_query_info, dict):
             raw_query = suggested_search_query_info["collationQuery"]
-            query = raw_query[len(search_field) + 2:-1].strip("(").strip(")").strip("name:").strip("or").strip("and")
+            query = raw_query[len(search_field) + 2:-1].lstrip("(").rstrip(")")
             suggested_search_queries.append(query)
             print("    {}".format(query))
 
@@ -823,7 +834,7 @@ def generate_search_suggestions(solr_url, collection_name, search_input,
     for item in fuzzy_suggester_results:
         print("    {}".format(item))
 
-    return suggesters_results
+    return suggesters_results, [item["term"] for item in fuzzy_suggester["suggestions"]]
 
 
 def more_like_this_recipe(solr_url, collection_name, search_input,
@@ -847,6 +858,24 @@ def more_like_this_recipe(solr_url, collection_name, search_input,
         print("    {0}".format(docs['name']))
 
     return result.docs[:results_count]
+
+
+def solr_search_recipes_by_category(solr_url, collection_name, search_input,
+                               field="category", search_field="name"):
+    """Uses Solr to search recipes by a given category"""
+    print("\nFinding the recipes for category", search_input)
+    solr = SolrClient(solr_url)
+    stem_value = stem(search_input)
+    query = "{0}_str:\"{1}\"".format(field, stem_value)
+    result = solr.query(collection_name, {
+        'q': query,
+        'fl': search_field,
+        'rows': QUERY_RESULTS
+    })
+
+    print("  Found top {0} results:".format(len(result.docs)))
+    return [r["name"] for r in result.docs]
+
 
 def main():
     # Defines some variables and constants
@@ -922,6 +951,10 @@ def main():
     # Processes the whole initial data from the json and gets the necessary data
     # process_data(data, ingredients, ingredient_data, ingredients_count_info)
     # print(ingredient_data[0])
+
+    # Search recipes by category
+    # res = solr_search_recipes_by_category(solr_url, collection_name, "салата")
+    # print(res)
 
     # Complex query inputs for the complex search
     facet_input = dict()
@@ -1082,7 +1115,13 @@ def main():
 
 
 if __name__ == "__main__":
+    from bulgarian_stemmer.bulgarian_stemmer import BulgarianStemmer
+    from bulgarian_stemmer.bulstem import *
+
     # enables the unicode console encoding on Windows
     if sys.platform == "win32":
         enable_win_unicode_console()
     main()
+else:
+    from .bulgarian_stemmer.bulgarian_stemmer import BulgarianStemmer
+    from .bulgarian_stemmer.bulstem import *

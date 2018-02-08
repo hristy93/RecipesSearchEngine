@@ -97,7 +97,6 @@
     <Content Include="RecipesSearchEngine\bulgarian_stemmer\__pycache__\__init__.cpython-35.pyc" />
     <Content Include="RecipesSearchEngine\recipes.json" />
     <Content Include="RecipesSearchEngine\RecipesSearchEngine.pyproj" />
-    <Content Include="RecipesSearchEngine\recipes_500_refined_edited.json" />
     <Content Include="RecipesSearchEngine\recipes_preprocessed.json" />
     <Content Include="RecipesSearchEngine\scrapy_crawler\scrapy.cfg" />
     <Content Include="RecipesSearchEngine\scrapy_crawler\scrapy_crawler\recipes.json" />
