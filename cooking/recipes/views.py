@@ -118,6 +118,26 @@ def home(request, *args, **kwargs):
     })
 
 
+def get_recipes(request):
+    all_recipes = Recipe.objects.all()[:500]
+    recipes = [serialize_recipe(r) for r in all_recipes]
+    return JsonResponse({"recipes": recipes})
+
+
+def get_categories(request):
+    categories = read_json('RecipesSearchEngine/categorie_preprocessed.json')
+    return JsonResponse({
+        "categories": sorted(categories.values())
+    })
+
+
+def get_users(request):
+    users = list(set(Recipe.objects.values_list('user', flat=True)))
+    return JsonResponse({
+        "users": sorted(users)
+    })
+
+
 def get_relevant_recipes(request, *args, **kwargs):
     if not request.GET:
         return JsonResponse({"recipes": []})

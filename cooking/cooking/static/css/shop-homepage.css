@@ -94,6 +94,11 @@ body {
   background: #06D85F;
 }
 
+#advanced-search {
+  border-bottom: 1px dotted #ccc;
+  padding-bottom: 30px;
+}
+
 .overlay {
   position: fixed;
   top: 0;

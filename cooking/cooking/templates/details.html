@@ -214,7 +214,11 @@
             <div class="row my-4" id="recipes-holder">
             <div class="col-lg-4 col-md-6 mb-4" v-for="recipe in recipes">
               <div class="card h-100">
-                <a :href="'#' + recipe.id" id="'r' + recipe.id"><img class="card-img-top small-image" :src="recipe.image_url" alt=""></a>
+                <a :href="'#' + recipe.id" id="'r' + recipe.id">
+                    <object class="card-img-top small-image" :data="recipe.image_url" type="image/png">
+                        <img class="card-img-top small-image" :src="defaultImageUrl" />
+                    </object>
+                </a>
                 <div class="card-body">
                   <h4 class="card-title">
                     <a :href="'/details/' + recipe.id" target="_blank">[ recipe.name ]</a>
