@@ -1,5 +1,9 @@
 import json
+
+from schema import Schema, And, Use, Optional
+
 from django.http import JsonResponse
+
 from .models import Ingredient, Recipe
 
 
@@ -44,24 +48,67 @@ def read_json(json_file_name):
 
 
 def fill_in_db_from_json(filename):
-    data = read_json(filename)
+    return create_recipe_from_json(read_json(filename))
+
+
+def create_recipe_from_json(data):
+    # schema = Schema([{
+    #     'name': And(str, len),
+    #     'age':  And(Use(int), lambda n: 18 <= n <= 99),
+    #     Optional('gender'): And(str, Use(str.lower), lambda s: s in ('squid', 'kid'))
+    # }])
+
+    recipe_schema = Schema([{
+        'name': And(str, len),
+        'user': And(str, len),
+        'url': And(Use(str), lambda url: 'http' in url),
+        'category': And(str, len),
+        'servings': And(int),
+        'comments': And(str, len),
+        'instructions': And(str, len),
+        'image_ulr': And(str, len),
+        'duration': And(str, len),
+        'rating': And(str, len),
+        'difficulty': And(str, len)
+    }])
+
+    ingredients_schema = Schema([{
+        'name': And(str, len),
+        'unit': And(str, len),
+        'quantity': And(str, len),
+        'unstructured_data': And(str, len)
+    }])
+
+    counter = 0
     for rec in data:
         try:
-            e = rec.pop('ingredients', [])
+            ingr = rec.pop('ingredients', { })
             rec.pop('duration_bound', None)
-            r = Recipe.objects.create(**rec)
-            for i in e:
+
+            # validate the schema for ingredients and recipes
+            ingr_data = ingredients_schema.validate(ingr)
+            rec_data = recipe_schema.validate(rec)
+
+            # don't create new recipe with duplicate name
+            if Recipe.objects.filter(name__icontains=rec_data['name']).exists():
+                pass
+
+            recipe = Recipe.objects.create(**rec)
+
+            for ingredient in ingr_data:
                 try:
-                    i.pop('common', None)
-                    r.ingredients.add(Ingredient.objects.create(**i))
-                except Exception as e:
-                    print(e)
+                    ingredient.pop('common', None)
+                    recipe.add(Ingredient.objects.create(**ingredient))
+                except Exception as i:
+                    print(ingredient)
                     print(rec)
                     continue
-        except Exception as i:
-            print(i)
-            print(rec)
-            continue
+
+            counter += 1
+        except Exception as e:
+            print(e)
+
+    return counter > 0
 
 
 def get_default_response():

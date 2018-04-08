@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
+import zeep
+import requests
+
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
+
 from RecipesSearchEngine.bulgarian_stemmer.bulstem import stem
 from RecipesSearchEngine.RecipesSearchEngine import (
     generate_search_suggestions, complex_search, solr_search_recipes_by_category,
     solr_single_term_search_by_field, solr_facet_search_recipe_category_by_field,
     more_like_this_recipe)
-from .utils import serialize_recipe, read_json, get_default_response
+from .utils import serialize_recipe, read_json, get_default_response, create_recipe_from_json
 from .models import Recipe
 
 
@@ -136,6 +140,27 @@ def get_users(request):
     return JsonResponse({
         "users": sorted(users)
     })
+
+
+def get_rest_recipes(request):
+    url = 'http://localhost:9000/some-endpoint'
+    recipes = requests.get(url).json()
+
+    result = create_recipe_from_json(recipes)
+    message = 'Success' if result else 'Failure'
+
+    return JsonResponse({'message': message})
+
+
+def get_soap_recipes(request):
+    wsdl = 'http://www.soapclient.com/xml/soapresponder.wsdl'
+    client = zeep.Client(wsdl=wsdl)
+    recipes = client.service.Method1('arg1', 'is cool')
+
+    result = create_recipe_from_json(recipes)
+    message = 'Success' if result else 'Failure'
+
+    return JsonResponse({'message': message})
 
 
 def get_relevant_recipes(request, *args, **kwargs):

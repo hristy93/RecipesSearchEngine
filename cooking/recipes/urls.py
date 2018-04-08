@@ -17,7 +17,8 @@ from django.urls import path
 from .views import (
     get_recipes_by_keyword, get_complex_search_results, home,
     search_recipes_by_keyword, search_recipes_by_category, get_relevant_recipes,
-    get_recipe_details, get_recipes, get_categories, get_users)
+    get_recipe_details, get_recipes, get_categories, get_users,
+    get_rest_recipes, get_soap_recipes)
 
 
 urlpatterns = [
@@ -31,4 +32,7 @@ urlpatterns = [
     path('all-recipes/', get_recipes, name='all-recipes'),
     path('all-categories/', get_categories, name='all-categories'),
     path('all-users/', get_users, name='all-users'),
+
+    path('rest-recipes/', get_rest_recipes, name='rest-recipes'),
+    path('soap-recipes/', get_soap_recipes, name='soap-recipes'),
 ]
