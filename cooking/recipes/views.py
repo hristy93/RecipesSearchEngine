@@ -155,7 +155,9 @@ def get_rest_recipes(request):
 def get_soap_recipes(request):
     wsdl = 'http://www.soapclient.com/xml/soapresponder.wsdl'
     client = zeep.Client(wsdl=wsdl)
-    recipes = client.service.Method1('arg1', 'is cool')
+    website_name = 'KulinarBg'
+    recipes_count = 5
+    recipes = client.service.StartCrawler(website_name, recipes_count)
 
     result = create_recipe_from_json(recipes)
     message = 'Success' if result else 'Failure'
