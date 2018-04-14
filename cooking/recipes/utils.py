@@ -52,11 +52,6 @@ def fill_in_db_from_json(filename):
 
 
 def create_recipe_from_json(data):
-    # schema = Schema([{
-    #     'name': And(str, len),
-    #     'age':  And(Use(int), lambda n: 18 <= n <= 99),
-    #     Optional('gender'): And(str, Use(str.lower), lambda s: s in ('squid', 'kid'))
-    # }])
 
     recipe_schema = Schema({
         'name': And(str, len),
@@ -64,7 +59,6 @@ def create_recipe_from_json(data):
         'url': And(Use(str), lambda url: 'http' in url),
         'category': And(str, len),
         'servings': And(str, len),
-        # 'comments': And(list, len),
         'comments': Schema([str]),
         'instructions': And(str, len),
         'image_url': And(str, lambda url: 'http' in url),
@@ -80,15 +74,11 @@ def create_recipe_from_json(data):
         'unstructured_data': And(str, len)
     }])
 
-    # comments_schema = Schema([And(str, len)])
-
-    import pdb; pdb.set_trace()
     counter = 0
     for rec in data:
         try:
             ingr = rec.pop('ingredients', {})
             rec.pop('duration_bound', None)
-            # rec.pop('comments', None)
 
             # validate the schema for ingredients and recipes
             ingr_data = ingredients_schema.validate(ingr)

@@ -162,11 +162,10 @@ def get_users(request):
     })
 
 
-def get_rest_recipes(request):
-    url = 'http://localhost:9000/some-endpoint'
+def get_rest_recipes(request, recipes_count=2):
+    url = settings.REST_URL.format(recipes_count=recipes_count)
     recipes = requests.get(url).json()
-
-    result = create_recipe_from_json(recipes)
+    result = create_recipe_from_json(json.loads(recipes))
     message = 'Success' if result else 'Failure'
 
     return JsonResponse({'message': message})
@@ -188,14 +187,10 @@ def start_soap_crawler(request):
 
 
 def get_soap_recipes(request):
-    wsdl = 'http://localhost:61609/Service.svc?singleWsdl'
+    wsdl = settings.SOAP_WSDL
     client = zeep.Client(wsdl=wsdl)
-    website_name = 'KulinarBg'
     recipes_count = 5
-    # element = client.get_element('ns0:ElementName')
-    # obj = element(_value_1={'item_1_a': 'foo', 'item_1_b': 'bar'})
     recipes = client.service.GetRecipeData(recipes_count)
-    # print(recipes)
     result = create_recipe_from_json(json.loads(recipes))
     message = 'Success' if result else 'Failure'
 
@@ -203,7 +198,7 @@ def get_soap_recipes(request):
 
 
 def get_soap_recipes1(request):
-    wsdl = 'http://localhost:61328/soap11'
+    wsdl = settings.SOAP_WSDL
     client = zeep.Client(wsdl=wsdl)
     website_name = 'KulinarBg'
     recipes_count = 5

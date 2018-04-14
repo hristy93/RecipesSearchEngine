@@ -124,3 +124,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.0/howto/static-files/
 
 STATIC_URL = '/static/'
+
+
+# GLOBAL VARIABLES
+REST_URL = 'http://localhost:61609/Service.svc/json/GetRecipeData?recipesCount={recipes_count}'
+SOAP_WSDL = 'http://localhost:61609/Service.svc?singleWsdl'
