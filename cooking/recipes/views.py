@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
-import zeep
+import json
+import logging
+import operator
 import requests
+import sys
+import zeep
 
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
@@ -18,6 +22,22 @@ SOLR_URL = "http://localhost:8983/solr"
 JSON_FILENAME = "scrapy_crawler/scrapy_crawler/recipes.json"
 # json_file_name = "recipes_500_refined_edited.json"
 COLLECTION = "recipes_search_engine"
+
+
+def enable_win_unicode_console():
+    try:
+        # Fix UTF8 output issues on Windows console.
+        # Does nothing if package is not installed
+        from win_unicode_console import enable
+        enable()
+    except ImportError:
+        pass
+
+
+# enables the unicode console encoding on Windows
+if sys.platform == "win32":
+    enable_win_unicode_console()
+
 
 
 def get_recipes_by_keyword(request, *args, **kwargs):
@@ -152,14 +172,55 @@ def get_rest_recipes(request):
     return JsonResponse({'message': message})
 
 
-def get_soap_recipes(request):
-    wsdl = 'http://www.soapclient.com/xml/soapresponder.wsdl'
+def start_soap_crawler(request):
+    wsdl = 'http://localhost:61609/Service.svc?singleWsdl'
     client = zeep.Client(wsdl=wsdl)
     website_name = 'KulinarBg'
     recipes_count = 5
+    # element = client.get_element('ns0:ElementName')
+    # obj = element(_value_1={'item_1_a': 'foo', 'item_1_b': 'bar'})
     recipes = client.service.StartCrawler(website_name, recipes_count)
 
     result = create_recipe_from_json(recipes)
+    message = 'Success' if result else 'Failure'
+
+    return JsonResponse({'message': message})
+
+
+def get_soap_recipes(request):
+    wsdl = 'http://localhost:61609/Service.svc?singleWsdl'
+    client = zeep.Client(wsdl=wsdl)
+    website_name = 'KulinarBg'
+    recipes_count = 5
+    # element = client.get_element('ns0:ElementName')
+    # obj = element(_value_1={'item_1_a': 'foo', 'item_1_b': 'bar'})
+    recipes = client.service.GetRecipeData(recipes_count)
+    # print(recipes)
+    result = create_recipe_from_json(json.loads(recipes))
+    message = 'Success' if result else 'Failure'
+
+    return JsonResponse({'message': message})
+
+
+def get_soap_recipes1(request):
+    wsdl = 'http://localhost:61328/soap11'
+    client = zeep.Client(wsdl=wsdl)
+    website_name = 'KulinarBg'
+    recipes_count = 5
+    hello_type = client.get_type('ns1:hello')
+    hello = hello_type(name='website_name')
+    # recipes = client.service.hello(hello)
+    # log = logging.getLogger(__name__)
+    # for service in client.wsdl.services.values():
+        # for port in service.ports.values():
+            # operations = sorted(
+            # port.binding._operations.values(),
+            # key=operator.attrgetter('name'))
+            # for operation in operations:
+               # print('operation name: ' + str(operation.name))
+    recipes = client.service.hello(hello = {'name': '3'})
+
+    print(recipes)
     message = 'Success' if result else 'Failure'
 
     return JsonResponse({'message': message})
