@@ -127,5 +127,9 @@ STATIC_URL = '/static/'
 
 
 # GLOBAL VARIABLES
+COLLECTION = "recipes_search_engine"
+SOLR_URL = "http://localhost:8983/solr"
+JSON_FILENAME = "scrapy_crawler/scrapy_crawler/recipes.json"
+
 REST_URL = 'http://localhost:61609/Service.svc/json/GetRecipeData?recipesCount={recipes_count}'
 SOAP_WSDL = 'http://localhost:61609/Service.svc?singleWsdl'

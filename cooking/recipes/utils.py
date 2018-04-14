@@ -86,7 +86,7 @@ def create_recipe_from_json(data):
 
             # don't create new recipe with duplicate name
             if Recipe.objects.filter(name__icontains=rec_data['name']).exists():
-                pass
+                continue
 
             recipe = Recipe.objects.create(**rec)
 

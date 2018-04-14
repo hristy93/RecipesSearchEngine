@@ -6,6 +6,7 @@ import requests
 import sys
 import zeep
 
+from django.conf import settings
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
 
@@ -18,10 +19,7 @@ from .utils import serialize_recipe, read_json, get_default_response, create_rec
 from .models import Recipe
 
 
-SOLR_URL = "http://localhost:8983/solr"
-JSON_FILENAME = "scrapy_crawler/scrapy_crawler/recipes.json"
 # json_file_name = "recipes_500_refined_edited.json"
-COLLECTION = "recipes_search_engine"
 
 
 def enable_win_unicode_console():
@@ -47,7 +45,7 @@ def get_recipes_by_keyword(request, *args, **kwargs):
     keyword = request.GET.get("keyword")
     search_field = request.GET.get("field", "name")
     found, titles = generate_search_suggestions(
-        SOLR_URL, COLLECTION, keyword, search_field)
+        settings.SOLR_URL, settings.COLLECTION, keyword, search_field)
     recipes = Recipe.objects.filter(name__in=titles)
     recipes = sorted(recipes, key=lambda x: titles.index(x.name))
     recipes = [serialize_recipe(r) for r in recipes]
@@ -63,7 +61,7 @@ def search_recipes_by_keyword(request, *args, **kwargs):
     keyword = request.GET.get("keyword")
     search_field = request.GET.get("field", "name")
     titles = solr_single_term_search_by_field(
-        SOLR_URL, COLLECTION, keyword, search_field)
+        settings.SOLR_URL, settings.COLLECTION, keyword, search_field)
     recipes = Recipe.objects.filter(name__in=titles)
     recipes = sorted(recipes, key=lambda x: titles.index(x.name))
     return JsonResponse({"recipes": [serialize_recipe(r) for r in recipes]})
@@ -97,7 +95,7 @@ def get_complex_search_results(request, *args, **kwargs):
     keys = ["category", "user_str", "duration"]
     facet_fields = request.GET.getlist("fields", keys)
     recipes, suggested_search_query_words, suggested_search_queries = complex_search(
-        SOLR_URL, COLLECTION, keyword, search_field,
+        settings.SOLR_URL, settings.COLLECTION, keyword, search_field,
         facet_fields, facet_input, duration_range
     )
     titles = [t['name'] for t in recipes]
@@ -118,7 +116,7 @@ def search_recipes_by_category(request, *args, **kwargs):
         return JsonResponse({"recipes": []})
     keyword = stem(request.GET.get("category"))
     titles = solr_search_recipes_by_category(
-        SOLR_URL, COLLECTION, keyword)
+        settings.SOLR_URL, settings.COLLECTION, keyword)
     recipes = Recipe.objects.filter(name__in=titles)[:100]
     return JsonResponse({"recipes": [serialize_recipe(r) for r in recipes]})
 
@@ -129,7 +127,7 @@ def home(request, *args, **kwargs):
     users = list(set(all_recipes.values_list('user', flat=True)))
     recipes = [serialize_recipe(r) for r in all_recipes[:100]]
     # categories = solr_facet_search_recipe_category_by_field(
-    #     SOLR_URL, COLLECTION, "", [])
+    #     settings.SOLR_URL, settings.COLLECTION, "", [])
     categories = read_json('RecipesSearchEngine/categorie_preprocessed.json')
     return render(request, "index.html", {
         "recipes": recipes,
@@ -164,35 +162,45 @@ def get_users(request):
 
 def get_rest_recipes(request, recipes_count=2):
     url = settings.REST_URL.format(recipes_count=recipes_count)
+    website_name = 'KulinarBg'
     recipes = requests.get(url).json()
     result = create_recipe_from_json(json.loads(recipes))
-    message = 'Success' if result else 'Failure'
+    if not result:
+        client = zeep.Client(wsdl=settings.SOAP_WSDL)
+        client.service.StartCrawler(website_name, recipes_count)
+        recipes = requests.get(url).json()
+        result = create_recipe_from_json(json.loads(recipes))
+
+    message = 'Successfully added new recipes.' if result else 'No new recipes found.'
 
     return JsonResponse({'message': message})
 
 
 def start_soap_crawler(request):
-    wsdl = 'http://localhost:61609/Service.svc?singleWsdl'
-    client = zeep.Client(wsdl=wsdl)
+    client = zeep.Client(wsdl=settings.SOAP_WSDL)
     website_name = 'KulinarBg'
     recipes_count = 5
     # element = client.get_element('ns0:ElementName')
     # obj = element(_value_1={'item_1_a': 'foo', 'item_1_b': 'bar'})
     recipes = client.service.StartCrawler(website_name, recipes_count)
-
-    result = create_recipe_from_json(recipes)
-    message = 'Success' if result else 'Failure'
+    message = 'Successfully started recipes crawling.'
 
     return JsonResponse({'message': message})
 
 
 def get_soap_recipes(request):
-    wsdl = settings.SOAP_WSDL
-    client = zeep.Client(wsdl=wsdl)
+    client = zeep.Client(wsdl=settings.SOAP_WSDL)
+    website_name = 'KulinarBg'
     recipes_count = 5
     recipes = client.service.GetRecipeData(recipes_count)
     result = create_recipe_from_json(json.loads(recipes))
-    message = 'Success' if result else 'Failure'
+
+    if not result:
+        client.service.StartCrawler(website_name, recipes_count)
+        recipes = client.service.GetRecipeData(recipes_count)
+        result = create_recipe_from_json(json.loads(recipes))
+
+    message = 'Successfully added new recipes.' if result else 'No new recipes found.'
 
     return JsonResponse({'message': message})
 
@@ -229,7 +237,7 @@ def get_relevant_recipes(request, *args, **kwargs):
     if not (search_input or category):
         return JsonResponse({"recipes": []})
     recipes = more_like_this_recipe(
-        SOLR_URL, COLLECTION, search_input, stem(category))
+        settings.SOLR_URL, settings.COLLECTION, search_input, stem(category))
     return JsonResponse({"recipes": [serialize_recipe(r) for r in recipes]})
 
 
@@ -238,7 +246,7 @@ def get_recipe_details(request, id):
     search_input = recipe.name
     category = stem(recipe.category)
     recipes = more_like_this_recipe(
-        SOLR_URL, COLLECTION, search_input, category, results_count=9)
+        settings.SOLR_URL, settings.COLLECTION, search_input, category, results_count=9)
     titles = [t['name'] for t in recipes]
     recipes = Recipe.objects.filter(name__in=titles)
     recipes = sorted(recipes, key=lambda x: titles.index(x.name))
