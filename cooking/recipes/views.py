@@ -39,7 +39,6 @@ if sys.platform == "win32":
     enable_win_unicode_console()
 
 
-
 def get_recipes_by_keyword(request, *args, **kwargs):
     # TODO: escape * and other symbols
     if not(request.GET and request.GET.get("keyword")):
@@ -187,30 +186,6 @@ def get_soap_recipes(request):
         result = create_recipe_from_json(json.loads(recipes))
 
     message = 'Successfully added new recipes.' if result else 'No new recipes found.'
-
-    return JsonResponse({'message': message})
-
-
-def get_soap_recipes1(request):
-    wsdl = settings.SOAP_WSDL
-    client = zeep.Client(wsdl=wsdl)
-    website_name = 'KulinarBg'
-    recipes_count = 5
-    hello_type = client.get_type('ns1:hello')
-    hello = hello_type(name='website_name')
-    # recipes = client.service.hello(hello)
-    # log = logging.getLogger(__name__)
-    # for service in client.wsdl.services.values():
-        # for port in service.ports.values():
-            # operations = sorted(
-            # port.binding._operations.values(),
-            # key=operator.attrgetter('name'))
-            # for operation in operations:
-               # print('operation name: ' + str(operation.name))
-    recipes = client.service.hello(hello = {'name': '3'})
-
-    print(recipes)
-    message = 'Success' if result else 'Failure'
 
     return JsonResponse({'message': message})
 
