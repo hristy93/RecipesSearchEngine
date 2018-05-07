@@ -2,10 +2,30 @@
 
 {% block object-tools-items %}
     <li>
-        <a class="addlink" href="{% url 'soap-recipes' %}">Craw recipes via SOAP</a>
+        <a class="addlink" href="javascript:;" onclick="getRecipes({% url 'soap-recipes' %});">Craw recipes via SOAP</a>
     </li>
     <li>
-        <a class="addlink" href="{% url 'rest-recipes' %}">Craw recipes via REST</a>
+        <a class="addlink" href="javascript:;" onclick="getRecipes({% url 'rest-recipes' %});">Craw recipes via REST</a>
     </li>
     {{ block.super }}
 {% endblock%}
+
+{% block extrahead %}
+    {{ block.super }}
+
+    <script type="text/javascript">
+        function getRecipes(link) {
+            django.jQuery.ajax({
+                url: link,
+                method: "GET",
+                success: function (data) {
+                    alert(data['message']);
+                    window.location.reload();
+                },
+                fail: function (error) {
+                    alert(data['error']);
+                }
+            })
+        }
+    </script>
+{% endblock %}

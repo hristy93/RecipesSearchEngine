@@ -15,7 +15,9 @@ from RecipesSearchEngine.RecipesSearchEngine import (
     generate_search_suggestions, complex_search, solr_search_recipes_by_category,
     solr_single_term_search_by_field, solr_facet_search_recipe_category_by_field,
     more_like_this_recipe)
-from .utils import serialize_recipe, read_json, get_default_response, create_recipe_from_json
+from .utils import (
+    serialize_recipe, read_json, get_default_response, create_recipe_from_json,
+    start_soap_crawler, save_rest_json_recipes, save_soap_json_recipes)
 from .models import Recipe
 
 
@@ -162,28 +164,12 @@ def get_users(request):
 
 def get_rest_recipes(request, recipes_count=2):
     url = settings.REST_URL.format(recipes_count=recipes_count)
-    website_name = 'KulinarBg'
-    recipes = requests.get(url).json()
-    result = create_recipe_from_json(json.loads(recipes))
+    result = save_rest_json_recipes(url)
     if not result:
-        client = zeep.Client(wsdl=settings.SOAP_WSDL)
-        client.service.StartCrawler(website_name, recipes_count)
-        recipes = requests.get(url).json()
-        result = create_recipe_from_json(json.loads(recipes))
+        start_soap_crawler()
+        result = save_rest_json_recipes(url)
 
     message = 'Successfully added new recipes.' if result else 'No new recipes found.'
-
-    return JsonResponse({'message': message})
-
-
-def start_soap_crawler(request):
-    client = zeep.Client(wsdl=settings.SOAP_WSDL)
-    website_name = 'KulinarBg'
-    recipes_count = 5
-    # element = client.get_element('ns0:ElementName')
-    # obj = element(_value_1={'item_1_a': 'foo', 'item_1_b': 'bar'})
-    recipes = client.service.StartCrawler(website_name, recipes_count)
-    message = 'Successfully started recipes crawling.'
 
     return JsonResponse({'message': message})
 

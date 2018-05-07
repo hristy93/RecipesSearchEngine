@@ -1,7 +1,10 @@
 import json
+import requests
+import zeep
 
-from schema import Schema, And, Use, Optional
+from schema import Schema, And, Use
 
+from django.conf import settings
 from django.http import JsonResponse
 
 from .models import Ingredient, Recipe
@@ -111,3 +114,17 @@ def get_default_response():
     return JsonResponse({
         "recipes": [serialize_recipe(r) for r in Recipe.objects.all()[:100]]
     })
+
+
+def start_soap_crawler(wsdl=settings.SOAP_WSDL, website_name='KulinarBg', recipes_count=5):
+    client = zeep.Client(wsdl=settings.SOAP_WSDL)
+    client.service.StartCrawler(website_name, recipes_count)
+
+
+def save_rest_json_recipes(url):
+    recipes = requests.get(url).json()
+    return create_recipe_from_json(json.loads(recipes))
+
+
+def save_soap_json_recipes():
+    pass
